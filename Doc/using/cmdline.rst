@@ -420,15 +420,17 @@ Miscellaneous options
    Reserved for various implementation-specific options.  CPython currently
    defines the following possible values:
 
-   * ``-X faulthandler`` to enable :mod:`faulthandler`;
+   * ``-X faulthandler`` to enable :mod:`faulthandler`. See also
+     :envvar:`PYTHONFAULTHANDLER`.
    * ``-X showrefcount`` to output the total reference count and number of used
      memory blocks when the program finishes or after each statement in the
      interactive interpreter. This only works on debug builds.
    * ``-X tracemalloc`` to start tracing Python memory allocations using the
      :mod:`tracemalloc` module. By default, only the most recent frame is
      stored in a traceback of a trace. Use ``-X tracemalloc=NFRAME`` to start
-     tracing with a traceback limit of *NFRAME* frames. See the
-     :func:`tracemalloc.start` for more information.
+     tracing with a traceback limit of *NFRAME* frames. See
+     :func:`tracemalloc.start` and :envvar:`PYTHONTRACEMALLOC` for more
+     information.
    * ``-X showalloccount`` to output the total count of allocated objects for
      each type when the program finishes. This only works when Python was built with
      ``COUNT_ALLOCS`` defined.
@@ -440,7 +442,8 @@ Miscellaneous options
    * ``-X dev``: enable CPython's "development mode", introducing additional
      runtime checks which are too expensive to be enabled by default. It should
      not be more verbose than the default if the code is correct: new warnings
-     are only emitted when an issue is detected. Effect of the developer mode:
+     are only emitted when an issue is detected. See also
+     :envvar:`PYTHONDEVMODE`. Effect of the developer mode:
 
      * Add ``default`` warning filter, as :option:`-W` ``default``.
      * Install debug hooks on memory allocators: see the
@@ -704,7 +707,8 @@ conflict.
    Python memory allocations using the :mod:`tracemalloc` module. The value of
    the variable is the maximum number of frames stored in a traceback of a
    trace. For example, ``PYTHONTRACEMALLOC=1`` stores only the most recent
-   frame. See the :func:`tracemalloc.start` for more information.
+   frame. See the :func:`tracemalloc.start` for more information. See also
+   command line option :option:`-X` ``tracemalloc``.
 
    .. versionadded:: 3.4
 
@@ -713,7 +717,7 @@ conflict.
 
    If this environment variable is set to a non-empty string, Python will
    show how long each import takes.  This is exactly equivalent to setting
-   ``-X importtime`` on the command line.
+   option :option:`-X` ``importtime`` on the command line.
 
    .. versionadded:: 3.7
 
