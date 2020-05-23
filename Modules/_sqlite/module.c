@@ -29,8 +29,8 @@
 #include "microprotocols.h"
 #include "row.h"
 
-#if SQLITE_VERSION_NUMBER < 3007003
-#error "SQLite 3.7.3 or higher required"
+#if SQLITE_VERSION_NUMBER < 3007015
+#error "SQLite 3.7.15 or higher required"
 #endif
 
 /* static objects at module-level */
@@ -344,8 +344,8 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
     PyObject *tmp_obj;
     int i;
 
-    if (sqlite3_libversion_number() < 3007003) {
-        PyErr_SetString(PyExc_ImportError, MODULE_NAME ": SQLite 3.7.3 or higher required");
+    if (sqlite3_libversion_number() < 3007015) {
+        PyErr_SetString(PyExc_ImportError, MODULE_NAME ": SQLite 3.7.15 or higher required");
         return NULL;
     }
 

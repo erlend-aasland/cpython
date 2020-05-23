@@ -125,8 +125,8 @@ that may require changes to your code.
 Build Changes
 =============
 
-* :mod:`sqlite3` requires SQLite 3.7.3 or higher. (Contributed by Sergey Fedoseev
-  and Erlend E. Aasland :issue:`40744`.)
+* :mod:`sqlite3` requires SQLite 3.7.15 or higher. (Contributed by Sergey Fedoseev
+  and Erlend E. Aasland :issue:`40744` and :issue:`40822`.)
 
 
 C API Changes
