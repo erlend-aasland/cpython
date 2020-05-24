@@ -137,6 +137,24 @@ class AggrSum:
     def finalize(self):
         return self.val
 
+
+class WindowSumInt:
+    def __init__(self):
+        self.count = 0
+
+    def step(self, value):
+        self.count += value
+
+    def value(self):
+        return self.count
+
+    def inverse(self, value):
+        self.count -= value
+
+    def finalize(self):
+        return self.count
+
+
 class FunctionTests(unittest.TestCase):
     def setUp(self):
         self.con = sqlite.connect(":memory:")
@@ -317,6 +335,74 @@ class FunctionTests(unittest.TestCase):
             self.con.create_function("deterministic", 0, int, True)
 
 
+class WindowFunctionTests(unittest.TestCase):
+    def setUp(self):
+        self.con = sqlite.connect(":memory:")
+        if sqlite.sqlite_version_info < (3, 25, 0):
+            return
+
+        # Test case taken from https://www.sqlite.org/windowfunctions.html#udfwinfunc
+        values = [
+            ('a', 4),
+            ('b', 5),
+            ('c', 3),
+            ('d', 8),
+            ('e', 1),
+        ]
+        self.cur = self.con.cursor()
+        self.cur.execute("create table test(x, y)")
+        self.cur.execute(f"insert into test values{','.join([str(v) for v in values])}")
+        self.expected = [
+            ('a', 9),
+            ('b', 12),
+            ('c', 16),
+            ('d', 12),
+            ('e', 9),
+        ]
+        self.query = ("""
+            select x, %s(y) over (
+                order by x rows between 1 preceding and 1 following
+            ) as sum_y
+            from test order by x
+        """)
+        self.con.create_window_function("sumint", 1, WindowSumInt)
+
+    @unittest.skipIf(sqlite.sqlite_version_info >= (3, 25, 0), "Requires SQLite pre 3.25.0")
+    def CheckNotSupported(self):
+        with self.assertRaises(sqlite.NotSupportedError):
+            self.con.create_window_function("windowfun", 1, WindowSumInt)
+
+    @unittest.skipIf(sqlite.sqlite_version_info < (3, 25, 0), "Requires SQLite 3.25.0 or higher")
+    def CheckSumInt(self):
+        self.cur.execute(self.query % "sumint")
+        self.assertEqual(self.cur.fetchall(), self.expected)
+
+    @unittest.skipIf(sqlite.sqlite_version_info < (3, 25, 0), "Requires SQLite 3.25.0 or higher")
+    def CheckErrorOnCreate(self):
+        with self.assertRaises(sqlite.OperationalError):
+            self.con.create_window_function('shouldfail', -100, WindowSumInt)
+
+    @unittest.skipIf(sqlite.sqlite_version_info < (3, 25, 0), "Requires SQLite 3.25.0 or higher")
+    def CheckMissingAttributes(self):
+        methods = ["step", "value", "inverse", "finalize"]
+        for meth in methods:
+            attrs = {"value.return_value": 0, "finalize.return_value": 0}
+            attrs[f"{meth}.side_effect"] = AttributeError()
+            self.con.create_window_function(f"no{meth}", 1, unittest.mock.Mock(spec=WindowSumInt, **attrs))
+            with self.assertRaises(sqlite.OperationalError):
+                self.cur.execute(self.query % f"no{meth}")
+                ret = self.cur.fetchall()
+
+    @unittest.skipIf(sqlite.sqlite_version_info < (3, 25, 0), "Requires SQLite 3.25.0 or higher")
+    def CheckExceptionInMethods(self):
+        methods = ["step", "value", "inverse", "finalize"]
+        for meth in methods:
+            attrs = {f"{meth}.side_effect": Exception('failed')}
+            self.con.create_window_function(f"exc{meth}", 1, unittest.mock.Mock(spec=WindowSumInt, **attrs))
+            with self.assertRaises(sqlite.OperationalError):
+                self.cur.execute(self.query % f"exc{meth}")
+                ret = self.cur.fetchall()
+
 class AggregateTests(unittest.TestCase):
     def setUp(self):
         self.con = sqlite.connect(":memory:")
@@ -496,11 +582,13 @@ class AuthorizerLargeIntegerTests(AuthorizerTests):
 def suite():
     function_suite = unittest.makeSuite(FunctionTests, "Check")
     aggregate_suite = unittest.makeSuite(AggregateTests, "Check")
+    window_function_suite = unittest.makeSuite(WindowFunctionTests, "Check")
     authorizer_suite = unittest.makeSuite(AuthorizerTests)
     return unittest.TestSuite((
             function_suite,
             aggregate_suite,
             authorizer_suite,
+            window_function_suite,
             unittest.makeSuite(AuthorizerRaiseExceptionTests),
             unittest.makeSuite(AuthorizerIllegalTypeTests),
             unittest.makeSuite(AuthorizerLargeIntegerTests),
