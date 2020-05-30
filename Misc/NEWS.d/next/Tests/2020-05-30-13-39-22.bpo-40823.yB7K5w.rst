@@ -1,2 +1,2 @@
 Use :func:`unittest.TestLoader.loadTestsFromTestCase()` iso.
-`unittest.makeSuite()` in :mod: `sqlite3` tests.
+`unittest.makeSuite()` in :mod:`sqlite3` tests.
