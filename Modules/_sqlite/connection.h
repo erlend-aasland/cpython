@@ -85,10 +85,10 @@ typedef struct
      */
     PyObject* text_factory;
 
-    /* remember references to object used in trace_callback/progress_handler/authorizer_cb */
-    PyObject* function_pinboard_trace_callback;
-    PyObject* function_pinboard_progress_handler;
-    PyObject* function_pinboard_authorizer_cb;
+    /* remember references to callback functions */
+    PyObject* trace_callback;
+    PyObject* progress_callback;
+    PyObject* authorizer_callback;
 
     /* a dictionary of registered collation name => collation callable mappings */
     PyObject* collations;

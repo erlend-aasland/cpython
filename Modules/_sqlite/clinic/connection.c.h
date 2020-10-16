@@ -330,8 +330,7 @@ PyDoc_STRVAR(pysqlite_connection_set_progress_handler__doc__,
 
 static PyObject *
 pysqlite_connection_set_progress_handler_impl(pysqlite_Connection *self,
-                                              PyObject *progress_handler,
-                                              int n);
+                                              PyObject *callback, int n);
 
 static PyObject *
 pysqlite_connection_set_progress_handler(pysqlite_Connection *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
@@ -340,19 +339,19 @@ pysqlite_connection_set_progress_handler(pysqlite_Connection *self, PyObject *co
     static const char * const _keywords[] = {"progress_handler", "n", NULL};
     static _PyArg_Parser _parser = {NULL, _keywords, "set_progress_handler", 0};
     PyObject *argsbuf[2];
-    PyObject *progress_handler;
+    PyObject *callback;
     int n;
 
     args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 2, 2, 0, argsbuf);
     if (!args) {
         goto exit;
     }
-    progress_handler = args[0];
+    callback = args[0];
     n = _PyLong_AsInt(args[1]);
     if (n == -1 && PyErr_Occurred()) {
         goto exit;
     }
-    return_value = pysqlite_connection_set_progress_handler_impl(self, progress_handler, n);
+    return_value = pysqlite_connection_set_progress_handler_impl(self, callback, n);
 
 exit:
     return return_value;
@@ -775,4 +774,4 @@ exit:
 #ifndef PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
     #define PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
 #endif /* !defined(PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF) */
-/*[clinic end generated code: output=eeb52a8ac1f2ab45 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=2b2e7f6c5d0238d8 input=a9049054013a1b77]*/
