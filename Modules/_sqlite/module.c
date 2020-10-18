@@ -353,15 +353,10 @@ static int add_integer_constants(PyObject *module) {
 }
 
 static struct PyModuleDef _sqlite3module = {
-        PyModuleDef_HEAD_INIT,
-        "_sqlite3",
-        NULL,
-        -1,
-        module_methods,
-        NULL,
-        NULL,
-        NULL,
-        NULL
+    PyModuleDef_HEAD_INIT,
+    .m_name = "_sqlite3",
+    .m_size = -1,
+    .m_methods = module_methods,
 };
 
 #define ADD_TYPE(module, type)                 \
