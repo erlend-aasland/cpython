@@ -90,9 +90,6 @@ typedef struct
     PyObject* progress_callback;
     PyObject* authorizer_callback;
 
-    /* a dictionary of registered collation name => collation callable mappings */
-    PyObject* collations;
-
     /* Exception objects */
     PyObject* Warning;
     PyObject* Error;

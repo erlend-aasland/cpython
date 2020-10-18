@@ -171,11 +171,6 @@ pysqlite_connection_init_impl(pysqlite_Connection *self,
     self->progress_callback = NULL;
     self->authorizer_callback = NULL;
 
-    Py_XSETREF(self->collations, PyDict_New());
-    if (!self->collations) {
-        return -1;
-    }
-
     self->Warning               = state->Warning;
     self->Error                 = state->Error;
     self->InterfaceError        = state->InterfaceError;
@@ -240,7 +235,6 @@ void pysqlite_connection_dealloc(pysqlite_Connection* self)
     Py_XDECREF(self->authorizer_callback);
     Py_XDECREF(self->row_factory);
     Py_XDECREF(self->text_factory);
-    Py_XDECREF(self->collations);
     Py_XDECREF(self->statements);
     Py_XDECREF(self->cursors);
 
@@ -838,6 +832,10 @@ static pysqlite_callback_context *pysqlite_new_callback_context(pysqlite_state *
 static void _destructor(void* args)
 {
     pysqlite_callback_context *ctx = (pysqlite_callback_context *)args;
+
+    if (!ctx) {
+        return;
+    }
 
     Py_DECREF(ctx->object);
     PyMem_Free(ctx);
@@ -1511,7 +1509,8 @@ pysqlite_collation_callback(
         int text1_length, const void* text1_data,
         int text2_length, const void* text2_data)
 {
-    PyObject* callback = (PyObject*)context;
+    pysqlite_callback_context *ctx;
+    PyObject* callback;
     PyObject* string1 = 0;
     PyObject* string2 = 0;
     PyGILState_STATE gilstate;
@@ -1530,6 +1529,9 @@ pysqlite_collation_callback(
     if (!string1 || !string2) {
         goto finally; /* failed to allocate strings */
     }
+
+    ctx = (pysqlite_callback_context *)context;
+    callback = ctx->object;
 
     retval = PyObject_CallFunctionObjArgs(callback, string1, string2, NULL);
 
@@ -1796,6 +1798,7 @@ pysqlite_connection_create_collation_impl(pysqlite_Connection *self,
                                           PyObject *name, PyObject *callable)
 /*[clinic end generated code: output=0f63b8995565ae22 input=5c3898813a776cf2]*/
 {
+    pysqlite_callback_context *ctx = NULL;
     pysqlite_state *state = &pysqlite_global_state;
     PyObject* uppercase_name = 0;
     PyObject* retval;
@@ -1844,20 +1847,26 @@ pysqlite_connection_create_collation_impl(pysqlite_Connection *self,
     }
 
     if (callable != Py_None) {
-        if (PyDict_SetItem(self->collations, uppercase_name, callable) == -1)
+        ctx = pysqlite_new_callback_context(state, callable);
+        if (ctx == NULL) {
             goto finally;
-    } else {
-        if (PyDict_DelItem(self->collations, uppercase_name) == -1)
-            goto finally;
+        }
+        Py_INCREF(callable);
     }
 
-    rc = sqlite3_create_collation(self->db,
-                                  uppercase_name_str,
-                                  SQLITE_UTF8,
-                                  (callable != Py_None) ? callable : NULL,
-                                  (callable != Py_None) ? pysqlite_collation_callback : NULL);
+    rc = sqlite3_create_collation_v2(self->db,
+                                     uppercase_name_str,
+                                     SQLITE_UTF8,
+                                     ctx,
+                                     (callable != Py_None) ? pysqlite_collation_callback : NULL,
+                                     _destructor);
+
+    /* Unlike other sqlite3_* functions, the destructor callback is _not_ called
+     * if sqlite3_create_collation_v2() fails, so we have to free the context
+     * before returning.  See https://sqlite.org/c3ref/create_collation.html
+     */
     if (rc != SQLITE_OK) {
-        PyDict_DelItem(self->collations, uppercase_name);
+        _destructor(ctx);
         _pysqlite_seterror(self->db, NULL);
         goto finally;
     }
