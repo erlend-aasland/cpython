@@ -42,17 +42,6 @@ module _sqlite3
 /* static objects at module-level */
 pysqlite_state pysqlite_global_state;
 
-PyObject *pysqlite_Error = NULL;
-PyObject *pysqlite_Warning = NULL;
-PyObject *pysqlite_InterfaceError = NULL;
-PyObject *pysqlite_DatabaseError = NULL;
-PyObject *pysqlite_InternalError = NULL;
-PyObject *pysqlite_OperationalError = NULL;
-PyObject *pysqlite_ProgrammingError = NULL;
-PyObject *pysqlite_IntegrityError = NULL;
-PyObject *pysqlite_DataError = NULL;
-PyObject *pysqlite_NotSupportedError = NULL;
-
 /* Python seems to have no way of extracting a single keyword-arg at
  * C-level, so this code is redundant with the one in connection_init in
  * connection.c and must always be copied from there ... */
@@ -169,12 +158,13 @@ static PyObject *
 pysqlite_enable_shared_cache_impl(PyObject *module, int do_enable)
 /*[clinic end generated code: output=259c74eedee1516b input=8400e41bc58b6b24]*/
 {
+    pysqlite_state *state = &pysqlite_global_state;
     int rc;
 
     rc = sqlite3_enable_shared_cache(do_enable);
 
     if (rc != SQLITE_OK) {
-        PyErr_SetString(pysqlite_OperationalError, "Changing the shared_cache flag failed");
+        PyErr_SetString(state->OperationalError, "Changing the shared_cache flag failed");
         return NULL;
     } else {
         Py_RETURN_NONE;
@@ -396,6 +386,7 @@ do {                                                            \
 
 PyMODINIT_FUNC PyInit__sqlite3(void)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject *module;
 
     if (sqlite3_libversion_number() < 3007003) {
@@ -423,20 +414,20 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
     ADD_TYPE(module, *pysqlite_RowType);
 
     /*** Create DB-API Exception hierarchy */
-    ADD_EXCEPTION(module, "Error", pysqlite_Error, PyExc_Exception);
-    ADD_EXCEPTION(module, "Warning", pysqlite_Warning, PyExc_Exception);
+    ADD_EXCEPTION(module, "Error", state->Error, PyExc_Exception);
+    ADD_EXCEPTION(module, "Warning", state->Warning, PyExc_Exception);
 
     /* Error subclasses */
-    ADD_EXCEPTION(module, "InterfaceError", pysqlite_InterfaceError, pysqlite_Error);
-    ADD_EXCEPTION(module, "DatabaseError", pysqlite_DatabaseError, pysqlite_Error);
+    ADD_EXCEPTION(module, "InterfaceError", state->InterfaceError, state->Error);
+    ADD_EXCEPTION(module, "DatabaseError", state->DatabaseError, state->Error);
 
-    /* pysqlite_DatabaseError subclasses */
-    ADD_EXCEPTION(module, "InternalError", pysqlite_InternalError, pysqlite_DatabaseError);
-    ADD_EXCEPTION(module, "OperationalError", pysqlite_OperationalError, pysqlite_DatabaseError);
-    ADD_EXCEPTION(module, "ProgrammingError", pysqlite_ProgrammingError, pysqlite_DatabaseError);
-    ADD_EXCEPTION(module, "IntegrityError", pysqlite_IntegrityError, pysqlite_DatabaseError);
-    ADD_EXCEPTION(module, "DataError", pysqlite_DataError, pysqlite_DatabaseError);
-    ADD_EXCEPTION(module, "NotSupportedError", pysqlite_NotSupportedError, pysqlite_DatabaseError);
+    /* state->DatabaseError subclasses */
+    ADD_EXCEPTION(module, "InternalError", state->InternalError, state->DatabaseError);
+    ADD_EXCEPTION(module, "OperationalError", state->OperationalError, state->DatabaseError);
+    ADD_EXCEPTION(module, "ProgrammingError", state->ProgrammingError, state->DatabaseError);
+    ADD_EXCEPTION(module, "IntegrityError", state->IntegrityError, state->DatabaseError);
+    ADD_EXCEPTION(module, "DataError", state->DataError, state->DatabaseError);
+    ADD_EXCEPTION(module, "NotSupportedError", state->NotSupportedError, state->DatabaseError);
 
     /* In Python 2.x, setting Connection.text_factory to
        OptimizedUnicode caused Unicode objects to be returned for

@@ -80,6 +80,7 @@ pysqlite_microprotocols_adapt(PyObject *obj, PyObject *proto, PyObject *alt)
 {
     _Py_IDENTIFIER(__adapt__);
     _Py_IDENTIFIER(__conform__);
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject *adapter, *key, *adapted;
 
     /* we don't check for exact type conformance as specified in PEP 246
@@ -146,6 +147,6 @@ pysqlite_microprotocols_adapt(PyObject *obj, PyObject *proto, PyObject *alt)
         return alt;
     }
     /* else set the right exception and return NULL */
-    PyErr_SetString(pysqlite_ProgrammingError, "can't adapt");
+    PyErr_SetString(state->ProgrammingError, "can't adapt");
     return NULL;
 }

@@ -209,6 +209,7 @@ static int _need_adapt(PyObject* obj)
 
 void pysqlite_statement_bind_parameters(pysqlite_Statement* self, PyObject* parameters)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject* current_param;
     PyObject* adapted;
     const char* binding_name;
@@ -234,7 +235,7 @@ void pysqlite_statement_bind_parameters(pysqlite_Statement* self, PyObject* para
             }
         }
         if (num_params != num_params_needed) {
-            PyErr_Format(pysqlite_ProgrammingError,
+            PyErr_Format(state->ProgrammingError,
                          "Incorrect number of bindings supplied. The current "
                          "statement uses %d, and there are %zd supplied.",
                          num_params_needed, num_params);
@@ -269,7 +270,7 @@ void pysqlite_statement_bind_parameters(pysqlite_Statement* self, PyObject* para
 
             if (rc != SQLITE_OK) {
                 if (!PyErr_Occurred()) {
-                    PyErr_Format(pysqlite_InterfaceError, "Error binding parameter %d - probably unsupported type.", i);
+                    PyErr_Format(state->InterfaceError, "Error binding parameter %d - probably unsupported type.", i);
                 }
                 return;
             }
@@ -282,7 +283,7 @@ void pysqlite_statement_bind_parameters(pysqlite_Statement* self, PyObject* para
             binding_name = sqlite3_bind_parameter_name(self->st, i);
             Py_END_ALLOW_THREADS
             if (!binding_name) {
-                PyErr_Format(pysqlite_ProgrammingError, "Binding %d has no name, but you supplied a dictionary (which has only names).", i);
+                PyErr_Format(state->ProgrammingError, "Binding %d has no name, but you supplied a dictionary (which has only names).", i);
                 return;
             }
 
@@ -300,7 +301,7 @@ void pysqlite_statement_bind_parameters(pysqlite_Statement* self, PyObject* para
             Py_DECREF(binding_name_obj);
             if (!current_param) {
                 if (!PyErr_Occurred() || PyErr_ExceptionMatches(PyExc_LookupError)) {
-                    PyErr_Format(pysqlite_ProgrammingError, "You did not supply a value for binding parameter :%s.", binding_name);
+                    PyErr_Format(state->ProgrammingError, "You did not supply a value for binding parameter :%s.", binding_name);
                 }
                 return;
             }
@@ -320,7 +321,7 @@ void pysqlite_statement_bind_parameters(pysqlite_Statement* self, PyObject* para
 
             if (rc != SQLITE_OK) {
                 if (!PyErr_Occurred()) {
-                    PyErr_Format(pysqlite_InterfaceError, "Error binding parameter :%s - probably unsupported type.", binding_name);
+                    PyErr_Format(state->InterfaceError, "Error binding parameter :%s - probably unsupported type.", binding_name);
                 }
                 return;
            }

@@ -241,6 +241,7 @@ _pysqlite_build_column_name(pysqlite_Cursor *self, const char *colname)
 static PyObject *
 _pysqlite_fetch_one_row(pysqlite_Cursor* self)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     int i, numcols;
     PyObject* row;
     PyObject* item = NULL;
@@ -254,7 +255,7 @@ _pysqlite_fetch_one_row(pysqlite_Cursor* self)
     PyObject* error_msg;
 
     if (self->reset) {
-        PyErr_SetString(pysqlite_InterfaceError, errmsg_fetch_across_rollback);
+        PyErr_SetString(state->InterfaceError, errmsg_fetch_across_rollback);
         return NULL;
     }
 
@@ -316,9 +317,9 @@ _pysqlite_fetch_one_row(pysqlite_Cursor* self)
                                      colname , val_str);
                         error_msg = PyUnicode_Decode(buf, strlen(buf), "ascii", "replace");
                         if (!error_msg) {
-                            PyErr_SetString(pysqlite_OperationalError, "Could not decode to UTF-8");
+                            PyErr_SetString(state->OperationalError, "Could not decode to UTF-8");
                         } else {
-                            PyErr_SetObject(pysqlite_OperationalError, error_msg);
+                            PyErr_SetObject(state->OperationalError, error_msg);
                             Py_DECREF(error_msg);
                         }
                     }
@@ -360,18 +361,20 @@ error:
  */
 static int check_cursor(pysqlite_Cursor* cur)
 {
+    pysqlite_state *state = &pysqlite_global_state;
+
     if (!cur->initialized) {
-        PyErr_SetString(pysqlite_ProgrammingError, "Base Cursor.__init__ not called.");
+        PyErr_SetString(state->ProgrammingError, "Base Cursor.__init__ not called.");
         return 0;
     }
 
     if (cur->closed) {
-        PyErr_SetString(pysqlite_ProgrammingError, "Cannot operate on a closed cursor.");
+        PyErr_SetString(state->ProgrammingError, "Cannot operate on a closed cursor.");
         return 0;
     }
 
     if (cur->locked) {
-        PyErr_SetString(pysqlite_ProgrammingError, "Recursive use of cursors not allowed.");
+        PyErr_SetString(state->ProgrammingError, "Recursive use of cursors not allowed.");
         return 0;
     }
 
@@ -530,7 +533,7 @@ _pysqlite_query_execute(pysqlite_Cursor* self, int multiple, PyObject* operation
         }
 
         if (pysqlite_build_row_cast_map(self) != 0) {
-            _PyErr_FormatFromCause(pysqlite_OperationalError, "Error while building row_cast_map");
+            _PyErr_FormatFromCause(state->OperationalError, "Error while building row_cast_map");
             goto error;
         }
 
@@ -581,7 +584,7 @@ _pysqlite_query_execute(pysqlite_Cursor* self, int multiple, PyObject* operation
 
         if (rc == SQLITE_ROW) {
             if (multiple) {
-                PyErr_SetString(pysqlite_ProgrammingError, "executemany() can only execute DML statements.");
+                PyErr_SetString(state->ProgrammingError, "executemany() can only execute DML statements.");
                 goto error;
             }
 
@@ -744,6 +747,7 @@ error:
 
 PyObject* pysqlite_cursor_iternext(pysqlite_Cursor *self)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject* next_row_tuple;
     PyObject* next_row;
     int rc;
@@ -753,7 +757,7 @@ PyObject* pysqlite_cursor_iternext(pysqlite_Cursor *self)
     }
 
     if (self->reset) {
-        PyErr_SetString(pysqlite_InterfaceError, errmsg_fetch_across_rollback);
+        PyErr_SetString(state->InterfaceError, errmsg_fetch_across_rollback);
         return NULL;
     }
 
@@ -939,8 +943,10 @@ static PyObject *
 pysqlite_cursor_close_impl(pysqlite_Cursor *self)
 /*[clinic end generated code: output=b6055e4ec6fe63b6 input=08b36552dbb9a986]*/
 {
+    pysqlite_state *state = &pysqlite_global_state;
+
     if (!self->connection) {
-        PyErr_SetString(pysqlite_ProgrammingError,
+        PyErr_SetString(state->ProgrammingError,
                         "Base Cursor.__init__ not called.");
         return NULL;
     }

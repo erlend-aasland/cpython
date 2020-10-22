@@ -29,6 +29,17 @@
 #define PYSQLITE_VERSION "2.6.0"
 
 typedef struct {
+    PyObject* Error;
+    PyObject* Warning;
+    PyObject* InterfaceError;
+    PyObject* DatabaseError;
+    PyObject* InternalError;
+    PyObject* OperationalError;
+    PyObject* ProgrammingError;
+    PyObject* IntegrityError;
+    PyObject* DataError;
+    PyObject* NotSupportedError;
+
     /* A dictionary, mapping column types (INTEGER, VARCHAR, etc.) to converter
      * functions, that convert the SQL value to the appropriate Python value.
      * The key is uppercase.
@@ -40,18 +51,6 @@ typedef struct {
 } pysqlite_state;
 
 extern pysqlite_state pysqlite_global_state;
-
-extern PyObject* pysqlite_Error;
-extern PyObject* pysqlite_Warning;
-extern PyObject* pysqlite_InterfaceError;
-extern PyObject* pysqlite_DatabaseError;
-extern PyObject* pysqlite_InternalError;
-extern PyObject* pysqlite_OperationalError;
-extern PyObject* pysqlite_ProgrammingError;
-extern PyObject* pysqlite_IntegrityError;
-extern PyObject* pysqlite_DataError;
-extern PyObject* pysqlite_NotSupportedError;
-
 
 #define PARSE_DECLTYPES 1
 #define PARSE_COLNAMES 2
