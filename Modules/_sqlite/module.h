@@ -40,8 +40,10 @@ typedef struct {
     PyObject* DataError;
     PyObject* NotSupportedError;
 
+    PyTypeObject *CacheType;
     PyTypeObject *ConnectionType;
     PyTypeObject *CursorType;
+    PyTypeObject *NodeType;
     PyTypeObject *RowType;
     PyTypeObject *StatementType;
 

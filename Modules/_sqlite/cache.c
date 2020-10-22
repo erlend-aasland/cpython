@@ -34,9 +34,10 @@ class _sqlite3.Cache "pysqlite_Cache *" "pysqlite_global_state.CacheType"
 /* only used internally */
 pysqlite_Node* pysqlite_new_node(PyObject* key, PyObject* data)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     pysqlite_Node* node;
 
-    node = (pysqlite_Node*) (pysqlite_NodeType->tp_alloc(pysqlite_NodeType, 0));
+    node = (pysqlite_Node*) (state->NodeType->tp_alloc(state->NodeType, 0));
     if (!node) {
         return NULL;
     }
@@ -304,7 +305,6 @@ static PyType_Spec node_spec = {
     .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .slots = node_slots,
 };
-PyTypeObject *pysqlite_NodeType = NULL;
 
 static PyMethodDef cache_methods[] = {
     PYSQLITE_CACHE_GET_METHODDEF
@@ -326,17 +326,18 @@ static PyType_Spec cache_spec = {
     .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .slots = cache_slots,
 };
-PyTypeObject *pysqlite_CacheType = NULL;
 
 extern int pysqlite_cache_setup_types(PyObject *mod)
 {
-    pysqlite_NodeType = (PyTypeObject *)PyType_FromModuleAndSpec(mod, &node_spec, NULL);
-    if (pysqlite_NodeType == NULL) {
+    pysqlite_state *state = &pysqlite_global_state;
+
+    state->NodeType = (PyTypeObject *)PyType_FromModuleAndSpec(mod, &node_spec, NULL);
+    if (state->NodeType == NULL) {
         return -1;
     }
 
-    pysqlite_CacheType = (PyTypeObject *)PyType_FromModuleAndSpec(mod, &cache_spec, NULL);
-    if (pysqlite_CacheType == NULL) {
+    state->CacheType = (PyTypeObject *)PyType_FromModuleAndSpec(mod, &cache_spec, NULL);
+    if (state->CacheType == NULL) {
         return -1;
     }
     return 0;
