@@ -40,9 +40,9 @@
 #include "clinic/connection.c.h"
 /*[clinic input]
 module _sqlite3
-class _sqlite3.Connection "pysqlite_Connection *" "pysqlite_ConnectionType"
+class _sqlite3.Connection "pysqlite_Connection *" "pysqlite_global_state.ConnectionType"
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=aa796073bd8f69db]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=21a9034c314e1a6b]*/
 
 _Py_IDENTIFIER(cursor);
 
@@ -66,7 +66,7 @@ _sqlite3.Connection.__init__ as pysqlite_connection_init
     detect_types: int = 0
     isolation_level: object = NULL
     check_same_thread: int = 1
-    factory: object(c_default='(PyObject*)pysqlite_ConnectionType') = ConnectionType
+    factory: object(c_default='(PyObject*)pysqlite_global_state.ConnectionType') = ConnectionType
     cached_statements: int = 100
     uri: bool = False
 [clinic start generated code]*/
@@ -77,7 +77,7 @@ pysqlite_connection_init_impl(pysqlite_Connection *self,
                               int detect_types, PyObject *isolation_level,
                               int check_same_thread, PyObject *factory,
                               int cached_statements, int uri)
-/*[clinic end generated code: output=dc19df1c0e2b7b77 input=6e5530f83e806e97]*/
+/*[clinic end generated code: output=dc19df1c0e2b7b77 input=72314c154b1e7411]*/
 {
     pysqlite_state *state = &pysqlite_global_state;
     const char* database;
@@ -604,9 +604,9 @@ PyObject* _pysqlite_build_py_params(sqlite3_context *context, int argc, sqlite3_
 
 void _pysqlite_func_callback(sqlite3_context* context, int argc, sqlite3_value** argv)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_callback_context *ctx;
+    pysqlite_state *state;
     PyObject* args;
-    PyObject* py_func;
     PyObject* py_retval = NULL;
     int ok;
 
@@ -614,11 +614,12 @@ void _pysqlite_func_callback(sqlite3_context* context, int argc, sqlite3_value**
 
     threadstate = PyGILState_Ensure();
 
-    py_func = (PyObject*)sqlite3_user_data(context);
+    ctx = (pysqlite_callback_context *)sqlite3_user_data(context);
+    state = ctx->state;
 
     args = _pysqlite_build_py_params(context, argc, argv);
     if (args) {
-        py_retval = PyObject_CallObject(py_func, args);
+        py_retval = PyObject_CallObject(ctx->object, args);
         Py_DECREF(args);
     }
 
@@ -641,7 +642,8 @@ void _pysqlite_func_callback(sqlite3_context* context, int argc, sqlite3_value**
 
 static void _pysqlite_step_callback(sqlite3_context *context, int argc, sqlite3_value** params)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_callback_context *ctx;
+    pysqlite_state *state;
     PyObject* args;
     PyObject* function_result = NULL;
     PyObject* aggregate_class;
@@ -652,7 +654,9 @@ static void _pysqlite_step_callback(sqlite3_context *context, int argc, sqlite3_
 
     threadstate = PyGILState_Ensure();
 
-    aggregate_class = (PyObject*)sqlite3_user_data(context);
+    ctx = (pysqlite_callback_context *)sqlite3_user_data(context);
+    state = ctx->state;
+    aggregate_class = ctx->object;
 
     aggregate_instance = (PyObject**)sqlite3_aggregate_context(context, sizeof(PyObject*));
 
@@ -702,7 +706,8 @@ error:
 
 void _pysqlite_final_callback(sqlite3_context* context)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_callback_context *ctx;
+    pysqlite_state *state;
     PyObject* function_result;
     PyObject** aggregate_instance;
     _Py_IDENTIFIER(finalize);
@@ -712,6 +717,9 @@ void _pysqlite_final_callback(sqlite3_context* context)
     PyGILState_STATE threadstate;
 
     threadstate = PyGILState_Ensure();
+
+    ctx = (pysqlite_callback_context *)sqlite3_user_data(context);
+    state = ctx->state;
 
     aggregate_instance = (PyObject**)sqlite3_aggregate_context(context, sizeof(PyObject*));
     if (!*aggregate_instance) {
@@ -812,9 +820,26 @@ static void _pysqlite_drop_unused_cursor_references(pysqlite_Connection* self)
     Py_SETREF(self->cursors, new_list);
 }
 
+static pysqlite_callback_context *pysqlite_new_callback_context(pysqlite_state *state, PyObject *object)
+{
+    pysqlite_callback_context *ctx = PyMem_Malloc(sizeof(*ctx));
+
+    if (!ctx) {
+        return (pysqlite_callback_context *)PyErr_NoMemory();
+    }
+
+    ctx->state = state;
+    ctx->object = object;
+
+    return ctx;
+}
+
 static void _destructor(void* args)
 {
-    Py_DECREF((PyObject*)args);
+    pysqlite_callback_context *ctx = (pysqlite_callback_context *)args;
+
+    Py_DECREF(ctx->object);
+    PyMem_Free(ctx);
 }
 
 /*[clinic input]
@@ -835,6 +860,7 @@ pysqlite_connection_create_function_impl(pysqlite_Connection *self,
                                          PyObject *func, int deterministic)
 /*[clinic end generated code: output=07d1877dd98c0308 input=f2edcf073e815beb]*/
 {
+    pysqlite_callback_context *ctx;
     pysqlite_state *state = &pysqlite_global_state;
     int rc;
     int flags = SQLITE_UTF8;
@@ -857,12 +883,18 @@ pysqlite_connection_create_function_impl(pysqlite_Connection *self,
         flags |= SQLITE_DETERMINISTIC;
 #endif
     }
+
+    ctx = pysqlite_new_callback_context(state, func);
+    if (ctx == NULL) {
+        return NULL;
+    }
+
     Py_INCREF(func);
     rc = sqlite3_create_function_v2(self->db,
                                     name,
                                     narg,
                                     flags,
-                                    (void*)func,
+                                    ctx,
                                     _pysqlite_func_callback,
                                     NULL,
                                     NULL,
@@ -892,10 +924,16 @@ pysqlite_connection_create_aggregate_impl(pysqlite_Connection *self,
                                           PyObject *aggregate_class)
 /*[clinic end generated code: output=fbb2f858cfa4d8db input=c2e13bbf234500a5]*/
 {
+    pysqlite_callback_context *ctx;
     pysqlite_state *state = &pysqlite_global_state;
     int rc;
 
     if (!pysqlite_check_thread(self) || !pysqlite_check_connection(self)) {
+        return NULL;
+    }
+
+    ctx = pysqlite_new_callback_context(state, aggregate_class);
+    if (ctx == NULL) {
         return NULL;
     }
 
@@ -904,7 +942,7 @@ pysqlite_connection_create_aggregate_impl(pysqlite_Connection *self,
                                     name,
                                     n_arg,
                                     SQLITE_UTF8,
-                                    (void*)aggregate_class,
+                                    ctx,
                                     0,
                                     &_pysqlite_step_callback,
                                     &_pysqlite_final_callback,
@@ -1598,7 +1636,7 @@ finally:
 /*[clinic input]
 _sqlite3.Connection.backup as pysqlite_connection_backup
 
-    target: object(type='pysqlite_Connection *', subclass_of='pysqlite_ConnectionType') = NULL
+    target: object(type='pysqlite_Connection *', subclass_of='pysqlite_global_state.ConnectionType') = NULL
     *
     pages: int = -1
     progress: object = None
@@ -1612,7 +1650,7 @@ pysqlite_connection_backup_impl(pysqlite_Connection *self,
                                 pysqlite_Connection *target, int pages,
                                 PyObject *progress, const char *name,
                                 double sleep)
-/*[clinic end generated code: output=306a3e6a38c36334 input=c71435ef1b7282a8]*/
+/*[clinic end generated code: output=306a3e6a38c36334 input=207f3b4a22da22ea]*/
 {
     pysqlite_state *state = &pysqlite_global_state;
     int rc;
@@ -1956,12 +1994,12 @@ static PyType_Spec connection_spec = {
     .slots = connection_slots,
 };
 
-PyTypeObject *pysqlite_ConnectionType = NULL;
-
 extern int pysqlite_connection_setup_types(PyObject *module)
 {
-    pysqlite_ConnectionType = (PyTypeObject *)PyType_FromModuleAndSpec(module, &connection_spec, NULL);
-    if (pysqlite_ConnectionType == NULL) {
+    pysqlite_state *state = &pysqlite_global_state;
+
+    state->ConnectionType = (PyTypeObject *)PyType_FromModuleAndSpec(module, &connection_spec, NULL);
+    if (state->ConnectionType == NULL) {
         return -1;
     }
     return 0;

@@ -24,7 +24,7 @@ pysqlite_connection_init(PyObject *self, PyObject *args, PyObject *kwargs)
     int detect_types = 0;
     PyObject *isolation_level = NULL;
     int check_same_thread = 1;
-    PyObject *factory = (PyObject*)pysqlite_ConnectionType;
+    PyObject *factory = (PyObject*)pysqlite_global_state.ConnectionType;
     int cached_statements = 100;
     int uri = 0;
 
@@ -612,8 +612,8 @@ pysqlite_connection_backup(pysqlite_Connection *self, PyObject *const *args, Py_
         goto skip_optional_pos;
     }
     if (args[0]) {
-        if (!PyObject_TypeCheck(args[0], pysqlite_ConnectionType)) {
-            _PyArg_BadArgument("backup", "argument 'target'", (pysqlite_ConnectionType)->tp_name, args[0]);
+        if (!PyObject_TypeCheck(args[0], pysqlite_global_state.ConnectionType)) {
+            _PyArg_BadArgument("backup", "argument 'target'", (pysqlite_global_state.ConnectionType)->tp_name, args[0]);
             goto exit;
         }
         target = (pysqlite_Connection *)args[0];
@@ -775,4 +775,4 @@ exit:
 #ifndef PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
     #define PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
 #endif /* !defined(PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF) */
-/*[clinic end generated code: output=424c4302eefc8d83 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=eeb52a8ac1f2ab45 input=a9049054013a1b77]*/

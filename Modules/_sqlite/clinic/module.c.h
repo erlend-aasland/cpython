@@ -35,7 +35,7 @@ pysqlite_connect(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
     int detect_types = 0;
     PyObject *isolation_level = NULL;
     int check_same_thread = 1;
-    PyObject *factory = (PyObject*)pysqlite_ConnectionType;
+    PyObject *factory = (PyObject*)pysqlite_global_state.ConnectionType;
     int cached_statements = 100;
     int uri = 0;
 
@@ -331,4 +331,4 @@ skip_optional:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=b4c834d8fc2217c7 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=5a439371efffa877 input=a9049054013a1b77]*/

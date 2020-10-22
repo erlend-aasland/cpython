@@ -106,7 +106,10 @@ typedef struct
     PyObject* NotSupportedError;
 } pysqlite_Connection;
 
-extern PyTypeObject *pysqlite_ConnectionType;
+typedef struct {
+    pysqlite_state *state;
+    PyObject *object;
+} pysqlite_callback_context;
 
 PyObject* pysqlite_connection_alloc(PyTypeObject* type, int aware);
 void pysqlite_connection_dealloc(pysqlite_Connection* self);

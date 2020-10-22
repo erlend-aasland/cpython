@@ -53,7 +53,7 @@ _sqlite3.connect as pysqlite_connect
     detect_types: int = 0
     isolation_level: object = NULL
     check_same_thread: int = 1
-    factory: object(c_default='(PyObject*)pysqlite_ConnectionType') = ConnectionType
+    factory: object(c_default='(PyObject*)pysqlite_global_state.ConnectionType') = ConnectionType
     cached_statements: int = 100
     uri: bool = False
 
@@ -68,7 +68,7 @@ pysqlite_connect_impl(PyObject *module, PyObject *database, double timeout,
                       int detect_types, PyObject *isolation_level,
                       int check_same_thread, PyObject *factory,
                       int cached_statements, int uri)
-/*[clinic end generated code: output=450ac9078b4868bb input=2ed7aa01d71d3f82]*/
+/*[clinic end generated code: output=450ac9078b4868bb input=8f29d4644ee3cfb0]*/
 {
     PyObject* obj_timeout;
     PyObject* obj_detect_types;
@@ -408,7 +408,7 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
         return NULL;
     }
 
-    ADD_TYPE(module, *pysqlite_ConnectionType);
+    ADD_TYPE(module, *state->ConnectionType);
     ADD_TYPE(module, *pysqlite_CursorType);
     ADD_TYPE(module, *pysqlite_PrepareProtocolType);
     ADD_TYPE(module, *pysqlite_RowType);

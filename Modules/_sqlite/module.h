@@ -40,6 +40,8 @@ typedef struct {
     PyObject* DataError;
     PyObject* NotSupportedError;
 
+    PyTypeObject *ConnectionType;
+
     /* A dictionary, mapping column types (INTEGER, VARCHAR, etc.) to converter
      * functions, that convert the SQL value to the appropriate Python value.
      * The key is uppercase.

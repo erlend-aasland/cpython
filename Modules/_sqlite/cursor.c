@@ -39,13 +39,13 @@ static const char errmsg_fetch_across_rollback[] = "Cursor needed to be reset be
 /*[clinic input]
 _sqlite3.Cursor.__init__ as pysqlite_cursor_init
 
-    connection: object(type='pysqlite_Connection *', subclass_of='pysqlite_ConnectionType')
+    connection: object(type='pysqlite_Connection *', subclass_of='pysqlite_global_state.ConnectionType')
 [clinic start generated code]*/
 
 static int
 pysqlite_cursor_init_impl(pysqlite_Cursor *self,
                           pysqlite_Connection *connection)
-/*[clinic end generated code: output=ac59dce49a809ca8 input=b0fbbcd055145d16]*/
+/*[clinic end generated code: output=ac59dce49a809ca8 input=5d01494f4507bb21]*/
 {
     Py_INCREF(connection);
     Py_XSETREF(self->connection, connection);
