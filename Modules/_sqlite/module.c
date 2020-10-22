@@ -40,6 +40,7 @@ module _sqlite3
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=81e330492d57488e]*/
 
 /* static objects at module-level */
+pysqlite_state pysqlite_global_state;
 
 PyObject *pysqlite_Error = NULL;
 PyObject *pysqlite_Warning = NULL;
