@@ -196,7 +196,7 @@ pysqlite_register_adapter_impl(PyObject *module, PyTypeObject *type,
         state->BaseTypeAdapted = 1;
     }
 
-    rc = pysqlite_microprotocols_add(type, (PyObject*)pysqlite_PrepareProtocolType, caster);
+    rc = pysqlite_microprotocols_add(type, (PyObject*)state->PrepareProtocolType, caster);
     if (rc == -1)
         return NULL;
 
@@ -264,7 +264,7 @@ pysqlite_enable_callback_trace_impl(PyObject *module, int enable)
 _sqlite3.adapt as pysqlite_adapt
 
     obj: object
-    proto: object(c_default='(PyObject*)pysqlite_PrepareProtocolType') = PrepareProtocolType
+    proto: object(c_default='(PyObject*)pysqlite_global_state.PrepareProtocolType') = PrepareProtocolType
     alt: object = NULL
     /
 
@@ -274,7 +274,7 @@ Adapt given object to given protocol. Non-standard.
 static PyObject *
 pysqlite_adapt_impl(PyObject *module, PyObject *obj, PyObject *proto,
                     PyObject *alt)
-/*[clinic end generated code: output=0c3927c5fcd23dd9 input=a58ab77fb5ae22dd]*/
+/*[clinic end generated code: output=0c3927c5fcd23dd9 input=ca371b16b9079f09]*/
 {
     return pysqlite_microprotocols_adapt(obj, proto, alt);
 }
@@ -410,7 +410,7 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
 
     ADD_TYPE(module, *state->ConnectionType);
     ADD_TYPE(module, *state->CursorType);
-    ADD_TYPE(module, *pysqlite_PrepareProtocolType);
+    ADD_TYPE(module, *state->PrepareProtocolType);
     ADD_TYPE(module, *state->RowType);
 
     /*** Create DB-API Exception hierarchy */

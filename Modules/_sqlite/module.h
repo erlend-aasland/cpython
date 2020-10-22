@@ -44,6 +44,7 @@ typedef struct {
     PyTypeObject *ConnectionType;
     PyTypeObject *CursorType;
     PyTypeObject *NodeType;
+    PyTypeObject *PrepareProtocolType;
     PyTypeObject *RowType;
     PyTypeObject *StatementType;
 

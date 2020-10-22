@@ -310,7 +310,7 @@ pysqlite_adapt(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
 {
     PyObject *return_value = NULL;
     PyObject *obj;
-    PyObject *proto = (PyObject*)pysqlite_PrepareProtocolType;
+    PyObject *proto = (PyObject*)pysqlite_global_state.PrepareProtocolType;
     PyObject *alt = NULL;
 
     if (!_PyArg_CheckPositional("adapt", nargs, 1, 3)) {
@@ -331,4 +331,4 @@ skip_optional:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=5a439371efffa877 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=130b5a7c951b79b5 input=a9049054013a1b77]*/

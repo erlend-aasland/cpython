@@ -57,10 +57,12 @@ pysqlite_microprotocols_init(PyObject *module)
 int
 pysqlite_microprotocols_add(PyTypeObject *type, PyObject *proto, PyObject *cast)
 {
+    pysqlite_state *state = &pysqlite_global_state;
+
     PyObject* key;
     int rc;
 
-    if (proto == NULL) proto = (PyObject*)pysqlite_PrepareProtocolType;
+    if (proto == NULL) proto = (PyObject*)state->PrepareProtocolType;
 
     key = Py_BuildValue("(OO)", (PyObject*)type, proto);
     if (!key) {
@@ -84,7 +86,7 @@ pysqlite_microprotocols_adapt(PyObject *obj, PyObject *proto, PyObject *alt)
     PyObject *adapter, *key, *adapted;
 
     /* we don't check for exact type conformance as specified in PEP 246
-       because the pysqlite_PrepareProtocolType type is abstract and there is no
+       because the state->PrepareProtocolType type is abstract and there is no
        way to get a quotable object to be its instance */
 
     /* look for an adapter in the registry */
