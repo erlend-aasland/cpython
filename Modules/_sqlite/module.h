@@ -43,6 +43,7 @@ typedef struct {
     PyTypeObject *ConnectionType;
     PyTypeObject *CursorType;
     PyTypeObject *RowType;
+    PyTypeObject *StatementType;
 
     /* A dictionary, mapping column types (INTEGER, VARCHAR, etc.) to converter
      * functions, that convert the SQL value to the appropriate Python value.

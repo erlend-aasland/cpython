@@ -481,12 +481,13 @@ static PyType_Spec stmt_spec = {
     .flags = Py_TPFLAGS_DEFAULT,
     .slots = stmt_slots,
 };
-PyTypeObject *pysqlite_StatementType = NULL;
 
 extern int pysqlite_statement_setup_types(PyObject *module)
 {
-    pysqlite_StatementType = (PyTypeObject *)PyType_FromModuleAndSpec(module, &stmt_spec, NULL);
-    if (pysqlite_StatementType == NULL) {
+    pysqlite_state *state = &pysqlite_global_state;
+
+    state->StatementType = (PyTypeObject *)PyType_FromModuleAndSpec(module, &stmt_spec, NULL);
+    if (state->StatementType == NULL) {
         return -1;
     }
     return 0;
