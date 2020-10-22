@@ -28,9 +28,9 @@
 
 /*[clinic input]
 module _sqlite3
-class _sqlite3.Cursor "pysqlite_Cursor *" "pysqlite_CursorType"
+class _sqlite3.Cursor "pysqlite_Cursor *" "pysqlite_global_state.CursorType"
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=b2072d8db95411d5]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=0177125daa396a7a]*/
 
 PyObject* pysqlite_cursor_iternext(pysqlite_Cursor* self);
 
@@ -1011,12 +1011,12 @@ static PyType_Spec cursor_spec = {
     .slots = cursor_slots,
 };
 
-PyTypeObject *pysqlite_CursorType = NULL;
-
 extern int pysqlite_cursor_setup_types(PyObject *module)
 {
-    pysqlite_CursorType = (PyTypeObject *)PyType_FromModuleAndSpec(module, &cursor_spec, NULL);
-    if (pysqlite_CursorType == NULL) {
+    pysqlite_state *state = &pysqlite_global_state;
+
+    state->CursorType = (PyTypeObject *)PyType_FromModuleAndSpec(module, &cursor_spec, NULL);
+    if (state->CursorType == NULL) {
         return -1;
     }
     return 0;

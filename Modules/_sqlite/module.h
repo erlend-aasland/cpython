@@ -41,6 +41,7 @@ typedef struct {
     PyObject* NotSupportedError;
 
     PyTypeObject *ConnectionType;
+    PyTypeObject *CursorType;
 
     /* A dictionary, mapping column types (INTEGER, VARCHAR, etc.) to converter
      * functions, that convert the SQL value to the appropriate Python value.
