@@ -110,31 +110,25 @@ PyDoc_STRVAR(pysqlite_connection_cursor__doc__,
 "Return a cursor for the connection.");
 
 #define PYSQLITE_CONNECTION_CURSOR_METHODDEF    \
-    {"cursor", (PyCFunction)(void(*)(void))pysqlite_connection_cursor, METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_cursor__doc__},
+    {"cursor", (PyCFunction)(void(*)(void))pysqlite_connection_cursor, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_cursor__doc__},
 
 static PyObject *
-pysqlite_connection_cursor_impl(pysqlite_Connection *self, PyObject *factory);
+pysqlite_connection_cursor_impl(pysqlite_Connection *self, PyTypeObject *cls,
+                                PyObject *factory);
 
 static PyObject *
-pysqlite_connection_cursor(pysqlite_Connection *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+pysqlite_connection_cursor(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"factory", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "cursor", 0};
-    PyObject *argsbuf[1];
-    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
+    static _PyArg_Parser _parser = {"|O:cursor", _keywords, 0};
     PyObject *factory = NULL;
 
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 1, 0, argsbuf);
-    if (!args) {
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+        &factory)) {
         goto exit;
     }
-    if (!noptargs) {
-        goto skip_optional_pos;
-    }
-    factory = args[0];
-skip_optional_pos:
-    return_value = pysqlite_connection_cursor_impl(self, factory);
+    return_value = pysqlite_connection_cursor_impl(self, cls, factory);
 
 exit:
     return return_value;
@@ -147,15 +141,26 @@ PyDoc_STRVAR(pysqlite_connection_close__doc__,
 "Closes the connection.");
 
 #define PYSQLITE_CONNECTION_CLOSE_METHODDEF    \
-    {"close", (PyCFunction)pysqlite_connection_close, METH_NOARGS, pysqlite_connection_close__doc__},
+    {"close", (PyCFunction)(void(*)(void))pysqlite_connection_close, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_close__doc__},
 
 static PyObject *
-pysqlite_connection_close_impl(pysqlite_Connection *self);
+pysqlite_connection_close_impl(pysqlite_Connection *self, PyTypeObject *cls);
 
 static PyObject *
-pysqlite_connection_close(pysqlite_Connection *self, PyObject *Py_UNUSED(ignored))
+pysqlite_connection_close(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
-    return pysqlite_connection_close_impl(self);
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = { NULL};
+    static _PyArg_Parser _parser = {":close", _keywords, 0};
+
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser
+        )) {
+        goto exit;
+    }
+    return_value = pysqlite_connection_close_impl(self, cls);
+
+exit:
+    return return_value;
 }
 
 PyDoc_STRVAR(pysqlite_connection_commit__doc__,
@@ -165,15 +170,26 @@ PyDoc_STRVAR(pysqlite_connection_commit__doc__,
 "Commit the current transaction.");
 
 #define PYSQLITE_CONNECTION_COMMIT_METHODDEF    \
-    {"commit", (PyCFunction)pysqlite_connection_commit, METH_NOARGS, pysqlite_connection_commit__doc__},
+    {"commit", (PyCFunction)(void(*)(void))pysqlite_connection_commit, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_commit__doc__},
 
 static PyObject *
-pysqlite_connection_commit_impl(pysqlite_Connection *self);
+pysqlite_connection_commit_impl(pysqlite_Connection *self, PyTypeObject *cls);
 
 static PyObject *
-pysqlite_connection_commit(pysqlite_Connection *self, PyObject *Py_UNUSED(ignored))
+pysqlite_connection_commit(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
-    return pysqlite_connection_commit_impl(self);
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = { NULL};
+    static _PyArg_Parser _parser = {":commit", _keywords, 0};
+
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser
+        )) {
+        goto exit;
+    }
+    return_value = pysqlite_connection_commit_impl(self, cls);
+
+exit:
+    return return_value;
 }
 
 PyDoc_STRVAR(pysqlite_connection_rollback__doc__,
@@ -183,15 +199,27 @@ PyDoc_STRVAR(pysqlite_connection_rollback__doc__,
 "Roll back the current transaction.");
 
 #define PYSQLITE_CONNECTION_ROLLBACK_METHODDEF    \
-    {"rollback", (PyCFunction)pysqlite_connection_rollback, METH_NOARGS, pysqlite_connection_rollback__doc__},
+    {"rollback", (PyCFunction)(void(*)(void))pysqlite_connection_rollback, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_rollback__doc__},
 
 static PyObject *
-pysqlite_connection_rollback_impl(pysqlite_Connection *self);
+pysqlite_connection_rollback_impl(pysqlite_Connection *self,
+                                  PyTypeObject *cls);
 
 static PyObject *
-pysqlite_connection_rollback(pysqlite_Connection *self, PyObject *Py_UNUSED(ignored))
+pysqlite_connection_rollback(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
-    return pysqlite_connection_rollback_impl(self);
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = { NULL};
+    static _PyArg_Parser _parser = {":rollback", _keywords, 0};
+
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser
+        )) {
+        goto exit;
+    }
+    return_value = pysqlite_connection_rollback_impl(self, cls);
+
+exit:
+    return return_value;
 }
 
 PyDoc_STRVAR(pysqlite_connection_create_function__doc__,
@@ -201,57 +229,30 @@ PyDoc_STRVAR(pysqlite_connection_create_function__doc__,
 "Creates a new function. Non-standard.");
 
 #define PYSQLITE_CONNECTION_CREATE_FUNCTION_METHODDEF    \
-    {"create_function", (PyCFunction)(void(*)(void))pysqlite_connection_create_function, METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_create_function__doc__},
+    {"create_function", (PyCFunction)(void(*)(void))pysqlite_connection_create_function, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_create_function__doc__},
 
 static PyObject *
 pysqlite_connection_create_function_impl(pysqlite_Connection *self,
-                                         const char *name, int narg,
-                                         PyObject *func, int deterministic);
+                                         PyTypeObject *cls, const char *name,
+                                         int narg, PyObject *func,
+                                         int deterministic);
 
 static PyObject *
-pysqlite_connection_create_function(pysqlite_Connection *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+pysqlite_connection_create_function(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"name", "narg", "func", "deterministic", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "create_function", 0};
-    PyObject *argsbuf[4];
-    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 3;
+    static _PyArg_Parser _parser = {"siO|$p:create_function", _keywords, 0};
     const char *name;
     int narg;
     PyObject *func;
     int deterministic = 0;
 
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 3, 3, 0, argsbuf);
-    if (!args) {
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+        &name, &narg, &func, &deterministic)) {
         goto exit;
     }
-    if (!PyUnicode_Check(args[0])) {
-        _PyArg_BadArgument("create_function", "argument 'name'", "str", args[0]);
-        goto exit;
-    }
-    Py_ssize_t name_length;
-    name = PyUnicode_AsUTF8AndSize(args[0], &name_length);
-    if (name == NULL) {
-        goto exit;
-    }
-    if (strlen(name) != (size_t)name_length) {
-        PyErr_SetString(PyExc_ValueError, "embedded null character");
-        goto exit;
-    }
-    narg = _PyLong_AsInt(args[1]);
-    if (narg == -1 && PyErr_Occurred()) {
-        goto exit;
-    }
-    func = args[2];
-    if (!noptargs) {
-        goto skip_optional_kwonly;
-    }
-    deterministic = PyObject_IsTrue(args[3]);
-    if (deterministic < 0) {
-        goto exit;
-    }
-skip_optional_kwonly:
-    return_value = pysqlite_connection_create_function_impl(self, name, narg, func, deterministic);
+    return_value = pysqlite_connection_create_function_impl(self, cls, name, narg, func, deterministic);
 
 exit:
     return return_value;
@@ -264,47 +265,29 @@ PyDoc_STRVAR(pysqlite_connection_create_aggregate__doc__,
 "Creates a new aggregate. Non-standard.");
 
 #define PYSQLITE_CONNECTION_CREATE_AGGREGATE_METHODDEF    \
-    {"create_aggregate", (PyCFunction)(void(*)(void))pysqlite_connection_create_aggregate, METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_create_aggregate__doc__},
+    {"create_aggregate", (PyCFunction)(void(*)(void))pysqlite_connection_create_aggregate, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_create_aggregate__doc__},
 
 static PyObject *
 pysqlite_connection_create_aggregate_impl(pysqlite_Connection *self,
+                                          PyTypeObject *cls,
                                           const char *name, int n_arg,
                                           PyObject *aggregate_class);
 
 static PyObject *
-pysqlite_connection_create_aggregate(pysqlite_Connection *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+pysqlite_connection_create_aggregate(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"name", "n_arg", "aggregate_class", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "create_aggregate", 0};
-    PyObject *argsbuf[3];
+    static _PyArg_Parser _parser = {"siO:create_aggregate", _keywords, 0};
     const char *name;
     int n_arg;
     PyObject *aggregate_class;
 
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 3, 3, 0, argsbuf);
-    if (!args) {
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+        &name, &n_arg, &aggregate_class)) {
         goto exit;
     }
-    if (!PyUnicode_Check(args[0])) {
-        _PyArg_BadArgument("create_aggregate", "argument 'name'", "str", args[0]);
-        goto exit;
-    }
-    Py_ssize_t name_length;
-    name = PyUnicode_AsUTF8AndSize(args[0], &name_length);
-    if (name == NULL) {
-        goto exit;
-    }
-    if (strlen(name) != (size_t)name_length) {
-        PyErr_SetString(PyExc_ValueError, "embedded null character");
-        goto exit;
-    }
-    n_arg = _PyLong_AsInt(args[1]);
-    if (n_arg == -1 && PyErr_Occurred()) {
-        goto exit;
-    }
-    aggregate_class = args[2];
-    return_value = pysqlite_connection_create_aggregate_impl(self, name, n_arg, aggregate_class);
+    return_value = pysqlite_connection_create_aggregate_impl(self, cls, name, n_arg, aggregate_class);
 
 exit:
     return return_value;
@@ -317,7 +300,30 @@ PyDoc_STRVAR(pysqlite_connection_set_authorizer__doc__,
 "Sets authorizer callback. Non-standard.");
 
 #define PYSQLITE_CONNECTION_SET_AUTHORIZER_METHODDEF    \
-    {"set_authorizer", (PyCFunction)pysqlite_connection_set_authorizer, METH_O, pysqlite_connection_set_authorizer__doc__},
+    {"set_authorizer", (PyCFunction)(void(*)(void))pysqlite_connection_set_authorizer, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_set_authorizer__doc__},
+
+static PyObject *
+pysqlite_connection_set_authorizer_impl(pysqlite_Connection *self,
+                                        PyTypeObject *cls,
+                                        PyObject *callback);
+
+static PyObject *
+pysqlite_connection_set_authorizer(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"", NULL};
+    static _PyArg_Parser _parser = {"O:set_authorizer", _keywords, 0};
+    PyObject *callback;
+
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+        &callback)) {
+        goto exit;
+    }
+    return_value = pysqlite_connection_set_authorizer_impl(self, cls, callback);
+
+exit:
+    return return_value;
+}
 
 PyDoc_STRVAR(pysqlite_connection_set_progress_handler__doc__,
 "set_progress_handler($self, /, progress_handler, n)\n"
@@ -377,23 +383,25 @@ PyDoc_STRVAR(pysqlite_connection_enable_load_extension__doc__,
 "Enable dynamic loading of SQLite extension modules. Non-standard.");
 
 #define PYSQLITE_CONNECTION_ENABLE_LOAD_EXTENSION_METHODDEF    \
-    {"enable_load_extension", (PyCFunction)pysqlite_connection_enable_load_extension, METH_O, pysqlite_connection_enable_load_extension__doc__},
+    {"enable_load_extension", (PyCFunction)(void(*)(void))pysqlite_connection_enable_load_extension, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_enable_load_extension__doc__},
 
 static PyObject *
 pysqlite_connection_enable_load_extension_impl(pysqlite_Connection *self,
-                                               int onoff);
+                                               PyTypeObject *cls, int onoff);
 
 static PyObject *
-pysqlite_connection_enable_load_extension(pysqlite_Connection *self, PyObject *arg)
+pysqlite_connection_enable_load_extension(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"", NULL};
+    static _PyArg_Parser _parser = {"i:enable_load_extension", _keywords, 0};
     int onoff;
 
-    onoff = _PyLong_AsInt(arg);
-    if (onoff == -1 && PyErr_Occurred()) {
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+        &onoff)) {
         goto exit;
     }
-    return_value = pysqlite_connection_enable_load_extension_impl(self, onoff);
+    return_value = pysqlite_connection_enable_load_extension_impl(self, cls, onoff);
 
 exit:
     return return_value;
@@ -410,32 +418,26 @@ PyDoc_STRVAR(pysqlite_connection_load_extension__doc__,
 "Load SQLite extension module. Non-standard.");
 
 #define PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF    \
-    {"load_extension", (PyCFunction)pysqlite_connection_load_extension, METH_O, pysqlite_connection_load_extension__doc__},
+    {"load_extension", (PyCFunction)(void(*)(void))pysqlite_connection_load_extension, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_load_extension__doc__},
 
 static PyObject *
 pysqlite_connection_load_extension_impl(pysqlite_Connection *self,
+                                        PyTypeObject *cls,
                                         const char *extension_name);
 
 static PyObject *
-pysqlite_connection_load_extension(pysqlite_Connection *self, PyObject *arg)
+pysqlite_connection_load_extension(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"", NULL};
+    static _PyArg_Parser _parser = {"s:load_extension", _keywords, 0};
     const char *extension_name;
 
-    if (!PyUnicode_Check(arg)) {
-        _PyArg_BadArgument("load_extension", "argument", "str", arg);
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+        &extension_name)) {
         goto exit;
     }
-    Py_ssize_t extension_name_length;
-    extension_name = PyUnicode_AsUTF8AndSize(arg, &extension_name_length);
-    if (extension_name == NULL) {
-        goto exit;
-    }
-    if (strlen(extension_name) != (size_t)extension_name_length) {
-        PyErr_SetString(PyExc_ValueError, "embedded null character");
-        goto exit;
-    }
-    return_value = pysqlite_connection_load_extension_impl(self, extension_name);
+    return_value = pysqlite_connection_load_extension_impl(self, cls, extension_name);
 
 exit:
     return return_value;
@@ -563,15 +565,27 @@ PyDoc_STRVAR(pysqlite_connection_iterdump__doc__,
 "Non-standard.");
 
 #define PYSQLITE_CONNECTION_ITERDUMP_METHODDEF    \
-    {"iterdump", (PyCFunction)pysqlite_connection_iterdump, METH_NOARGS, pysqlite_connection_iterdump__doc__},
+    {"iterdump", (PyCFunction)(void(*)(void))pysqlite_connection_iterdump, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_iterdump__doc__},
 
 static PyObject *
-pysqlite_connection_iterdump_impl(pysqlite_Connection *self);
+pysqlite_connection_iterdump_impl(pysqlite_Connection *self,
+                                  PyTypeObject *cls);
 
 static PyObject *
-pysqlite_connection_iterdump(pysqlite_Connection *self, PyObject *Py_UNUSED(ignored))
+pysqlite_connection_iterdump(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
-    return pysqlite_connection_iterdump_impl(self);
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = { NULL};
+    static _PyArg_Parser _parser = {":iterdump", _keywords, 0};
+
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser
+        )) {
+        goto exit;
+    }
+    return_value = pysqlite_connection_iterdump_impl(self, cls);
+
+exit:
+    return return_value;
 }
 
 PyDoc_STRVAR(pysqlite_connection_backup__doc__,
@@ -581,94 +595,31 @@ PyDoc_STRVAR(pysqlite_connection_backup__doc__,
 "\n");
 
 #define PYSQLITE_CONNECTION_BACKUP_METHODDEF    \
-    {"backup", (PyCFunction)(void(*)(void))pysqlite_connection_backup, METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_backup__doc__},
+    {"backup", (PyCFunction)(void(*)(void))pysqlite_connection_backup, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_backup__doc__},
 
 static PyObject *
-pysqlite_connection_backup_impl(pysqlite_Connection *self,
+pysqlite_connection_backup_impl(pysqlite_Connection *self, PyTypeObject *cls,
                                 pysqlite_Connection *target, int pages,
                                 PyObject *progress, const char *name,
                                 double sleep);
 
 static PyObject *
-pysqlite_connection_backup(pysqlite_Connection *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+pysqlite_connection_backup(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
     static const char * const _keywords[] = {"target", "pages", "progress", "name", "sleep", NULL};
-    static _PyArg_Parser _parser = {NULL, _keywords, "backup", 0};
-    PyObject *argsbuf[5];
-    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
+    static _PyArg_Parser _parser = {"|O!$iOsd:backup", _keywords, 0};
     pysqlite_Connection *target = NULL;
     int pages = -1;
     PyObject *progress = Py_None;
     const char *name = "main";
     double sleep = 0.25;
 
-    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 1, 0, argsbuf);
-    if (!args) {
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+        pysqlite_global_state.ConnectionType, &target, &pages, &progress, &name, &sleep)) {
         goto exit;
     }
-    if (!noptargs) {
-        goto skip_optional_pos;
-    }
-    if (args[0]) {
-        if (!PyObject_TypeCheck(args[0], pysqlite_global_state.ConnectionType)) {
-            _PyArg_BadArgument("backup", "argument 'target'", (pysqlite_global_state.ConnectionType)->tp_name, args[0]);
-            goto exit;
-        }
-        target = (pysqlite_Connection *)args[0];
-        if (!--noptargs) {
-            goto skip_optional_pos;
-        }
-    }
-skip_optional_pos:
-    if (!noptargs) {
-        goto skip_optional_kwonly;
-    }
-    if (args[1]) {
-        pages = _PyLong_AsInt(args[1]);
-        if (pages == -1 && PyErr_Occurred()) {
-            goto exit;
-        }
-        if (!--noptargs) {
-            goto skip_optional_kwonly;
-        }
-    }
-    if (args[2]) {
-        progress = args[2];
-        if (!--noptargs) {
-            goto skip_optional_kwonly;
-        }
-    }
-    if (args[3]) {
-        if (!PyUnicode_Check(args[3])) {
-            _PyArg_BadArgument("backup", "argument 'name'", "str", args[3]);
-            goto exit;
-        }
-        Py_ssize_t name_length;
-        name = PyUnicode_AsUTF8AndSize(args[3], &name_length);
-        if (name == NULL) {
-            goto exit;
-        }
-        if (strlen(name) != (size_t)name_length) {
-            PyErr_SetString(PyExc_ValueError, "embedded null character");
-            goto exit;
-        }
-        if (!--noptargs) {
-            goto skip_optional_kwonly;
-        }
-    }
-    if (PyFloat_CheckExact(args[4])) {
-        sleep = PyFloat_AS_DOUBLE(args[4]);
-    }
-    else
-    {
-        sleep = PyFloat_AsDouble(args[4]);
-        if (sleep == -1.0 && PyErr_Occurred()) {
-            goto exit;
-        }
-    }
-skip_optional_kwonly:
-    return_value = pysqlite_connection_backup_impl(self, target, pages, progress, name, sleep);
+    return_value = pysqlite_connection_backup_impl(self, cls, target, pages, progress, name, sleep);
 
 exit:
     return return_value;
@@ -681,32 +632,27 @@ PyDoc_STRVAR(pysqlite_connection_create_collation__doc__,
 "Creates a collation function. Non-standard.");
 
 #define PYSQLITE_CONNECTION_CREATE_COLLATION_METHODDEF    \
-    {"create_collation", (PyCFunction)(void(*)(void))pysqlite_connection_create_collation, METH_FASTCALL, pysqlite_connection_create_collation__doc__},
+    {"create_collation", (PyCFunction)(void(*)(void))pysqlite_connection_create_collation, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_create_collation__doc__},
 
 static PyObject *
 pysqlite_connection_create_collation_impl(pysqlite_Connection *self,
-                                          PyObject *name, PyObject *callable);
+                                          PyTypeObject *cls, PyObject *name,
+                                          PyObject *callable);
 
 static PyObject *
-pysqlite_connection_create_collation(pysqlite_Connection *self, PyObject *const *args, Py_ssize_t nargs)
+pysqlite_connection_create_collation(pysqlite_Connection *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"", "", NULL};
+    static _PyArg_Parser _parser = {"UO:create_collation", _keywords, 0};
     PyObject *name;
     PyObject *callable;
 
-    if (!_PyArg_CheckPositional("create_collation", nargs, 2, 2)) {
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+        &name, &callable)) {
         goto exit;
     }
-    if (!PyUnicode_Check(args[0])) {
-        _PyArg_BadArgument("create_collation", "argument 1", "str", args[0]);
-        goto exit;
-    }
-    if (PyUnicode_READY(args[0]) == -1) {
-        goto exit;
-    }
-    name = args[0];
-    callable = args[1];
-    return_value = pysqlite_connection_create_collation_impl(self, name, callable);
+    return_value = pysqlite_connection_create_collation_impl(self, cls, name, callable);
 
 exit:
     return return_value;
@@ -774,4 +720,4 @@ exit:
 #ifndef PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
     #define PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
 #endif /* !defined(PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF) */
-/*[clinic end generated code: output=2b2e7f6c5d0238d8 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=16810cce85155fa9 input=a9049054013a1b77]*/
