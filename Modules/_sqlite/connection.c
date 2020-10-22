@@ -601,6 +601,7 @@ PyObject* _pysqlite_build_py_params(sqlite3_context *context, int argc, sqlite3_
 
 void _pysqlite_func_callback(sqlite3_context* context, int argc, sqlite3_value** argv)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject* args;
     PyObject* py_func;
     PyObject* py_retval = NULL;
@@ -624,7 +625,7 @@ void _pysqlite_func_callback(sqlite3_context* context, int argc, sqlite3_value**
         Py_DECREF(py_retval);
     }
     if (!ok) {
-        if (_pysqlite_enable_callback_tracebacks) {
+        if (state->enable_callback_tracebacks) {
             PyErr_Print();
         } else {
             PyErr_Clear();
@@ -637,6 +638,7 @@ void _pysqlite_func_callback(sqlite3_context* context, int argc, sqlite3_value**
 
 static void _pysqlite_step_callback(sqlite3_context *context, int argc, sqlite3_value** params)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject* args;
     PyObject* function_result = NULL;
     PyObject* aggregate_class;
@@ -656,7 +658,7 @@ static void _pysqlite_step_callback(sqlite3_context *context, int argc, sqlite3_
 
         if (PyErr_Occurred()) {
             *aggregate_instance = 0;
-            if (_pysqlite_enable_callback_tracebacks) {
+            if (state->enable_callback_tracebacks) {
                 PyErr_Print();
             } else {
                 PyErr_Clear();
@@ -680,7 +682,7 @@ static void _pysqlite_step_callback(sqlite3_context *context, int argc, sqlite3_
     Py_DECREF(args);
 
     if (!function_result) {
-        if (_pysqlite_enable_callback_tracebacks) {
+        if (state->enable_callback_tracebacks) {
             PyErr_Print();
         } else {
             PyErr_Clear();
@@ -697,6 +699,7 @@ error:
 
 void _pysqlite_final_callback(sqlite3_context* context)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject* function_result;
     PyObject** aggregate_instance;
     _Py_IDENTIFIER(finalize);
@@ -728,7 +731,7 @@ void _pysqlite_final_callback(sqlite3_context* context)
         Py_DECREF(function_result);
     }
     if (!ok) {
-        if (_pysqlite_enable_callback_tracebacks) {
+        if (state->enable_callback_tracebacks) {
             PyErr_Print();
         } else {
             PyErr_Clear();
@@ -911,6 +914,7 @@ pysqlite_connection_create_aggregate_impl(pysqlite_Connection *self,
 
 static int _authorizer_callback(void* user_arg, int action, const char* arg1, const char* arg2 , const char* dbname, const char* access_attempt_source)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject *ret;
     int rc;
     PyGILState_STATE gilstate;
@@ -920,7 +924,7 @@ static int _authorizer_callback(void* user_arg, int action, const char* arg1, co
     ret = PyObject_CallFunction((PyObject*)user_arg, "issss", action, arg1, arg2, dbname, access_attempt_source);
 
     if (ret == NULL) {
-        if (_pysqlite_enable_callback_tracebacks)
+        if (state->enable_callback_tracebacks)
             PyErr_Print();
         else
             PyErr_Clear();
@@ -931,7 +935,7 @@ static int _authorizer_callback(void* user_arg, int action, const char* arg1, co
         if (PyLong_Check(ret)) {
             rc = _PyLong_AsInt(ret);
             if (rc == -1 && PyErr_Occurred()) {
-                if (_pysqlite_enable_callback_tracebacks)
+                if (state->enable_callback_tracebacks)
                     PyErr_Print();
                 else
                     PyErr_Clear();
@@ -950,6 +954,7 @@ static int _authorizer_callback(void* user_arg, int action, const char* arg1, co
 
 static int _progress_handler(void* user_arg)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     int rc;
     PyObject *ret;
     PyGILState_STATE gilstate;
@@ -958,7 +963,7 @@ static int _progress_handler(void* user_arg)
     ret = _PyObject_CallNoArg((PyObject*)user_arg);
 
     if (!ret) {
-        if (_pysqlite_enable_callback_tracebacks) {
+        if (state->enable_callback_tracebacks) {
             PyErr_Print();
         } else {
             PyErr_Clear();
@@ -987,6 +992,7 @@ static int _trace_callback(unsigned int type, void* user_arg, void* prepared_sta
 static void _trace_callback(void* user_arg, const char* statement_string)
 #endif
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject *py_statement = NULL;
     PyObject *ret = NULL;
 
@@ -1009,7 +1015,7 @@ static void _trace_callback(void* user_arg, const char* statement_string)
     if (ret) {
         Py_DECREF(ret);
     } else {
-        if (_pysqlite_enable_callback_tracebacks) {
+        if (state->enable_callback_tracebacks) {
             PyErr_Print();
         } else {
             PyErr_Clear();

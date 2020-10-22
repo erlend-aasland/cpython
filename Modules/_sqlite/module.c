@@ -54,7 +54,6 @@ PyObject *pysqlite_DataError = NULL;
 PyObject *pysqlite_NotSupportedError = NULL;
 
 PyObject* _pysqlite_converters = NULL;
-int _pysqlite_enable_callback_tracebacks = 0;
 
 /* Python seems to have no way of extracting a single keyword-arg at
  * C-level, so this code is redundant with the one in connection_init in
@@ -265,7 +264,9 @@ static PyObject *
 pysqlite_enable_callback_trace_impl(PyObject *module, int enable)
 /*[clinic end generated code: output=4ff1d051c698f194 input=cb79d3581eb77c40]*/
 {
-    _pysqlite_enable_callback_tracebacks = enable;
+    pysqlite_state *state = &pysqlite_global_state;
+
+    state->enable_callback_tracebacks = enable;
 
     Py_RETURN_NONE;
 }

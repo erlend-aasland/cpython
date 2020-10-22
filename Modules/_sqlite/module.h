@@ -29,6 +29,7 @@
 #define PYSQLITE_VERSION "2.6.0"
 
 typedef struct {
+    int enable_callback_tracebacks;
     int BaseTypeAdapted;
 } pysqlite_state;
 
@@ -51,7 +52,6 @@ extern PyObject* pysqlite_NotSupportedError;
  */
 extern PyObject* _pysqlite_converters;
 
-extern int _pysqlite_enable_callback_tracebacks;
 
 #define PARSE_DECLTYPES 1
 #define PARSE_COLNAMES 2
