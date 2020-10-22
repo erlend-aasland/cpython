@@ -312,7 +312,7 @@ static PyMethodDef cache_methods[] = {
     {NULL, NULL}
 };
 
-static PyType_Slot pysqlite_CacheType_slots[] = {
+static PyType_Slot cache_slots[] = {
     {Py_tp_dealloc, pysqlite_cache_dealloc},
     {Py_tp_methods, cache_methods},
     {Py_tp_new, PyType_GenericNew},
@@ -320,11 +320,11 @@ static PyType_Slot pysqlite_CacheType_slots[] = {
     {0, NULL},
 };
 
-static PyType_Spec pysqlite_CacheType_spec = {
+static PyType_Spec cache_spec = {
     .name = MODULE_NAME ".Cache",
     .basicsize = sizeof(pysqlite_Cache),
     .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .slots = pysqlite_CacheType_slots,
+    .slots = cache_slots,
 };
 PyTypeObject *pysqlite_CacheType = NULL;
 
@@ -335,7 +335,7 @@ extern int pysqlite_cache_setup_types(PyObject *mod)
         return -1;
     }
 
-    pysqlite_CacheType = (PyTypeObject *)PyType_FromModuleAndSpec(mod, &pysqlite_CacheType_spec, NULL);
+    pysqlite_CacheType = (PyTypeObject *)PyType_FromModuleAndSpec(mod, &cache_spec, NULL);
     if (pysqlite_CacheType == NULL) {
         return -1;
     }
