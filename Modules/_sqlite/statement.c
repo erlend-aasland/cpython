@@ -193,7 +193,9 @@ final:
 /* returns 0 if the object is one of Python's internal ones that don't need to be adapted */
 static int _need_adapt(PyObject* obj)
 {
-    if (pysqlite_BaseTypeAdapted) {
+    pysqlite_state *state = &pysqlite_global_state;
+
+    if (state->BaseTypeAdapted) {
         return 1;
     }
 

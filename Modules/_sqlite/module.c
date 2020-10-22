@@ -55,7 +55,6 @@ PyObject *pysqlite_NotSupportedError = NULL;
 
 PyObject* _pysqlite_converters = NULL;
 int _pysqlite_enable_callback_tracebacks = 0;
-int pysqlite_BaseTypeAdapted = 0;
 
 /* Python seems to have no way of extracting a single keyword-arg at
  * C-level, so this code is redundant with the one in connection_init in
@@ -200,13 +199,14 @@ pysqlite_register_adapter_impl(PyObject *module, PyTypeObject *type,
                                PyObject *caster)
 /*[clinic end generated code: output=a287e8db18e8af23 input=839dad90e2492725]*/
 {
+    pysqlite_state *state = &pysqlite_global_state;
     int rc;
 
     /* a basic type is adapted; there's a performance optimization if that's not the case
      * (99 % of all usages) */
     if (type == &PyLong_Type || type == &PyFloat_Type
             || type == &PyUnicode_Type || type == &PyByteArray_Type) {
-        pysqlite_BaseTypeAdapted = 1;
+        state->BaseTypeAdapted = 1;
     }
 
     rc = pysqlite_microprotocols_add(type, (PyObject*)pysqlite_PrepareProtocolType, caster);
