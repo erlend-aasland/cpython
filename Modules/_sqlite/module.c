@@ -53,8 +53,6 @@ PyObject *pysqlite_IntegrityError = NULL;
 PyObject *pysqlite_DataError = NULL;
 PyObject *pysqlite_NotSupportedError = NULL;
 
-PyObject* _pysqlite_converters = NULL;
-
 /* Python seems to have no way of extracting a single keyword-arg at
  * C-level, so this code is redundant with the one in connection_init in
  * connection.c and must always be copied from there ... */
@@ -230,6 +228,7 @@ pysqlite_register_converter_impl(PyObject *module, PyObject *orig_name,
                                  PyObject *callable)
 /*[clinic end generated code: output=a2f2bfeed7230062 input=e074cf7f4890544f]*/
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject* name = NULL;
     PyObject* retval = NULL;
     _Py_IDENTIFIER(upper);
@@ -240,7 +239,7 @@ pysqlite_register_converter_impl(PyObject *module, PyObject *orig_name,
         goto error;
     }
 
-    if (PyDict_SetItem(_pysqlite_converters, name, callable) != 0) {
+    if (PyDict_SetItem(state->converters, name, callable) != 0) {
         goto error;
     }
 
@@ -292,13 +291,15 @@ pysqlite_adapt_impl(PyObject *module, PyObject *obj, PyObject *proto,
 
 static void converters_init(PyObject* module)
 {
-    _pysqlite_converters = PyDict_New();
-    if (!_pysqlite_converters) {
+    pysqlite_state *state = &pysqlite_global_state;
+
+    state->converters = PyDict_New();
+    if (!state->converters) {
         return;
     }
 
-    if (PyModule_AddObject(module, "converters", _pysqlite_converters) < 0) {
-        Py_DECREF(_pysqlite_converters);
+    if (PyModule_AddObject(module, "converters", state->converters) < 0) {
+        Py_DECREF(state->converters);
     }
     return;
 }

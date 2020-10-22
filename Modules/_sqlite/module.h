@@ -29,6 +29,12 @@
 #define PYSQLITE_VERSION "2.6.0"
 
 typedef struct {
+    /* A dictionary, mapping column types (INTEGER, VARCHAR, etc.) to converter
+     * functions, that convert the SQL value to the appropriate Python value.
+     * The key is uppercase.
+     */
+    PyObject* converters;
+
     int enable_callback_tracebacks;
     int BaseTypeAdapted;
 } pysqlite_state;
@@ -45,12 +51,6 @@ extern PyObject* pysqlite_ProgrammingError;
 extern PyObject* pysqlite_IntegrityError;
 extern PyObject* pysqlite_DataError;
 extern PyObject* pysqlite_NotSupportedError;
-
-/* A dictionary, mapping column types (INTEGER, VARCHAR, etc.) to converter
- * functions, that convert the SQL value to the appropriate Python value.
- * The key is uppercase.
- */
-extern PyObject* _pysqlite_converters;
 
 
 #define PARSE_DECLTYPES 1

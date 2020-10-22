@@ -109,6 +109,7 @@ static void pysqlite_cursor_dealloc(pysqlite_Cursor* self)
 static PyObject *
 _pysqlite_get_converter(const char *keystr, Py_ssize_t keylen)
 {
+    pysqlite_state *state = &pysqlite_global_state;
     PyObject *key;
     PyObject *upcase_key;
     PyObject *retval;
@@ -124,7 +125,7 @@ _pysqlite_get_converter(const char *keystr, Py_ssize_t keylen)
         return NULL;
     }
 
-    retval = PyDict_GetItemWithError(_pysqlite_converters, upcase_key);
+    retval = PyDict_GetItemWithError(state->converters, upcase_key);
     Py_DECREF(upcase_key);
 
     return retval;
