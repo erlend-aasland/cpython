@@ -52,10 +52,6 @@ typedef struct
 
     pysqlite_Node* first;
     pysqlite_Node* last;
-
-    /* if set, decrement the factory function when the Cache is deallocated.
-     * this is almost always desirable, but not in the pysqlite context */
-    int decref_factory;
 } pysqlite_Cache;
 
 int pysqlite_node_init(pysqlite_Node* self, PyObject* args, PyObject* kwargs);
