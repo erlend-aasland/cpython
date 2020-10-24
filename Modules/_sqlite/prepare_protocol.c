@@ -38,7 +38,6 @@ void pysqlite_prepare_protocol_dealloc(pysqlite_PrepareProtocol* self)
 
 static PyType_Slot type_slots[] = {
     {Py_tp_dealloc, pysqlite_prepare_protocol_dealloc},
-    {Py_tp_new, PyType_GenericNew},
     {Py_tp_init, pysqlite_prepare_protocol_init},
     {0, NULL},
 };

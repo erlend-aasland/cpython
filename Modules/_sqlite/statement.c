@@ -468,7 +468,6 @@ static PyMemberDef stmt_members[] = {
 static PyType_Slot stmt_slots[] = {
     {Py_tp_members, stmt_members},
     {Py_tp_dealloc, pysqlite_statement_dealloc},
-    {Py_tp_new, PyType_GenericNew},
     {0, NULL},
 };
 

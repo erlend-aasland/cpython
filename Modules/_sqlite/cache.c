@@ -295,7 +295,6 @@ pysqlite_cache_display_impl(pysqlite_Cache *self, PyTypeObject *cls)
 
 static PyType_Slot node_slots[] = {
     {Py_tp_dealloc, pysqlite_node_dealloc},
-    {Py_tp_new, PyType_GenericNew},
     {0, NULL},
 };
 
@@ -315,7 +314,6 @@ static PyMethodDef cache_methods[] = {
 static PyType_Slot cache_slots[] = {
     {Py_tp_dealloc, pysqlite_cache_dealloc},
     {Py_tp_methods, cache_methods},
-    {Py_tp_new, PyType_GenericNew},
     {Py_tp_init, pysqlite_cache_init},
     {0, NULL},
 };
