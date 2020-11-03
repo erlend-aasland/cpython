@@ -27,14 +27,14 @@
 #include "clinic/cache.c.h"
 /*[clinic input]
 module _sqlite3
-class _sqlite3.Cache "pysqlite_Cache *" "pysqlite_global_state.CacheType"
+class _sqlite3.Cache "pysqlite_Cache *" "pysqlite_slot_get_state(self)->CacheType"
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=1629f3b7147926a5]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=9c5d04cc6cf29180]*/
 
 /* only used internally */
-pysqlite_Node* pysqlite_new_node(PyObject* key, PyObject* data)
+pysqlite_Node* pysqlite_new_node(PyTypeObject *cls, PyObject* key, PyObject* data)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_cls_get_state(cls);
     pysqlite_Node* node;
 
     node = (pysqlite_Node*) (state->NodeType->tp_alloc(state->NodeType, 0));
@@ -221,7 +221,7 @@ pysqlite_cache_get_impl(pysqlite_Cache *self, PyTypeObject *cls,
             return NULL;
         }
 
-        node = pysqlite_new_node(key, data);
+        node = pysqlite_new_node(cls, key, data);
         if (!node) {
             return NULL;
         }
@@ -329,7 +329,7 @@ static PyType_Spec cache_spec = {
 
 extern int pysqlite_cache_setup_types(PyObject *mod)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_get_state(mod);
 
     state->NodeType = (PyTypeObject *)PyType_FromModuleAndSpec(mod, &node_spec, NULL);
     if (state->NodeType == NULL) {

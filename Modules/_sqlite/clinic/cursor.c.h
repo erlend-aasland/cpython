@@ -21,8 +21,8 @@ pysqlite_cursor_init(PyObject *self, PyObject *args, PyObject *kwargs)
     if (!fastargs) {
         goto exit;
     }
-    if (!PyObject_TypeCheck(fastargs[0], pysqlite_global_state.ConnectionType)) {
-        _PyArg_BadArgument("Cursor", "argument 'connection'", (pysqlite_global_state.ConnectionType)->tp_name, fastargs[0]);
+    if (!PyObject_TypeCheck(fastargs[0], pysqlite_slot_get_state(Py_TYPE(self))->ConnectionType)) {
+        _PyArg_BadArgument("Cursor", "argument 'connection'", (pysqlite_slot_get_state(Py_TYPE(self))->ConnectionType)->tp_name, fastargs[0]);
         goto exit;
     }
     connection = (pysqlite_Connection *)fastargs[0];
@@ -309,4 +309,4 @@ pysqlite_cursor_close(pysqlite_Cursor *self, PyTypeObject *cls, PyObject *const 
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=fae8772d4e264496 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=cb3b773c76b44b4c input=a9049054013a1b77]*/

@@ -57,12 +57,8 @@ pysqlite_microprotocols_init(PyObject *module)
 int
 pysqlite_microprotocols_add(PyTypeObject *type, PyObject *proto, PyObject *cast)
 {
-    pysqlite_state *state = &pysqlite_global_state;
-
     PyObject* key;
     int rc;
-
-    if (proto == NULL) proto = (PyObject*)state->PrepareProtocolType;
 
     key = Py_BuildValue("(OO)", (PyObject*)type, proto);
     if (!key) {
@@ -78,11 +74,10 @@ pysqlite_microprotocols_add(PyTypeObject *type, PyObject *proto, PyObject *cast)
 /* pysqlite_microprotocols_adapt - adapt an object to the built-in protocol */
 
 PyObject *
-pysqlite_microprotocols_adapt(PyObject *obj, PyObject *proto, PyObject *alt)
+pysqlite_microprotocols_adapt(pysqlite_state *state, PyObject *obj, PyObject *proto, PyObject *alt)
 {
     _Py_IDENTIFIER(__adapt__);
     _Py_IDENTIFIER(__conform__);
-    pysqlite_state *state = &pysqlite_global_state;
     PyObject *adapter, *key, *adapted;
 
     /* we don't check for exact type conformance as specified in PEP 246

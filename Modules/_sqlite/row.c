@@ -27,9 +27,9 @@
 
 /*[clinic input]
 module _sqlite3
-class _sqlite3.Row "pysqlite_Row *" "pysqlite_global_state.RowType"
+class _sqlite3.Row "pysqlite_Row *" "pysqlite_slot_get_state(type)->RowType"
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=5bca7e294403839e]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=2db2e00e89c039a0]*/
 
 void pysqlite_row_dealloc(pysqlite_Row* self)
 {
@@ -46,7 +46,7 @@ void pysqlite_row_dealloc(pysqlite_Row* self)
 @classmethod
 _sqlite3.Row.__new__ as pysqlite_row_new
 
-    cursor: object(type='pysqlite_Cursor *', subclass_of='pysqlite_global_state.CursorType')
+    cursor: object(type='pysqlite_Cursor *', subclass_of='pysqlite_slot_get_state(type)->CursorType')
     data: object(subclass_of='&PyTuple_Type')
     /
 
@@ -55,7 +55,7 @@ _sqlite3.Row.__new__ as pysqlite_row_new
 static PyObject *
 pysqlite_row_new_impl(PyTypeObject *type, pysqlite_Cursor *cursor,
                       PyObject *data)
-/*[clinic end generated code: output=10d58b09a819a4c1 input=90361ffcaca5eb89]*/
+/*[clinic end generated code: output=10d58b09a819a4c1 input=4103dd0bbc6fe743]*/
 {
     pysqlite_Row *self;
 
@@ -202,7 +202,7 @@ static Py_hash_t pysqlite_row_hash(pysqlite_Row *self)
 
 static PyObject* pysqlite_row_richcompare(pysqlite_Row *self, PyObject *_other, int opid)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_cls_get_state(Py_TYPE(self));
 
     if (opid != Py_EQ && opid != Py_NE)
         Py_RETURN_NOTIMPLEMENTED;
@@ -249,7 +249,7 @@ static PyType_Spec row_spec = {
 
 extern int pysqlite_row_setup_types(PyObject *module)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_get_state(module);
 
     state->RowType = (PyTypeObject *)PyType_FromModuleAndSpec(module, &row_spec, NULL);
     if (state->RowType == NULL) {

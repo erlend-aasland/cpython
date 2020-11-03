@@ -58,7 +58,12 @@ typedef struct {
     int BaseTypeAdapted;
 } pysqlite_state;
 
-extern pysqlite_state pysqlite_global_state;
+extern PyModuleDef _sqlite3module;
+
+pysqlite_state *pysqlite_get_state(PyObject *module);
+#define pysqlite_cls_get_state(cls) (pysqlite_get_state(PyType_GetModule(cls)))
+#define pysqlite_slot_get_state(tp) \
+    (pysqlite_get_state(_PyType_GetModuleByDef(tp, &_sqlite3module)))
 
 #define PARSE_DECLTYPES 1
 #define PARSE_COLNAMES 2

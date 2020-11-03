@@ -26,8 +26,7 @@
 #ifndef PSYCOPG_MICROPROTOCOLS_H
 #define PSYCOPG_MICROPROTOCOLS_H 1
 
-#define PY_SSIZE_T_CLEAN
-#include <Python.h>
+#include "module.h"
 
 /** the names of the three mandatory methods **/
 
@@ -42,6 +41,6 @@ extern int pysqlite_microprotocols_init(PyObject *module);
 extern int pysqlite_microprotocols_add(
     PyTypeObject *type, PyObject *proto, PyObject *cast);
 extern PyObject *pysqlite_microprotocols_adapt(
-    PyObject *obj, PyObject *proto, PyObject *alt);
+    pysqlite_state *, PyObject *obj, PyObject *proto, PyObject *alt);
 
 #endif /* !defined(PSYCOPG_MICROPROTOCOLS_H) */

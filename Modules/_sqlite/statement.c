@@ -191,10 +191,8 @@ final:
 }
 
 /* returns 0 if the object is one of Python's internal ones that don't need to be adapted */
-static int _need_adapt(PyObject* obj)
+static int _need_adapt(pysqlite_state *state, PyObject* obj)
 {
-    pysqlite_state *state = &pysqlite_global_state;
-
     if (state->BaseTypeAdapted) {
         return 1;
     }
@@ -207,9 +205,8 @@ static int _need_adapt(PyObject* obj)
     }
 }
 
-void pysqlite_statement_bind_parameters(pysqlite_Statement* self, PyObject* parameters)
+void pysqlite_statement_bind_parameters(pysqlite_state* state, pysqlite_Statement* self, PyObject* parameters)
 {
-    pysqlite_state *state = &pysqlite_global_state;
     PyObject* current_param;
     PyObject* adapted;
     const char* binding_name;
@@ -255,10 +252,10 @@ void pysqlite_statement_bind_parameters(pysqlite_Statement* self, PyObject* para
                 return;
             }
 
-            if (!_need_adapt(current_param)) {
+            if (!_need_adapt(state, current_param)) {
                 adapted = current_param;
             } else {
-                adapted = pysqlite_microprotocols_adapt(current_param, (PyObject*)state->PrepareProtocolType, current_param);
+                adapted = pysqlite_microprotocols_adapt(state, current_param, (PyObject*)state->PrepareProtocolType, current_param);
                 Py_DECREF(current_param);
                 if (!adapted) {
                     return;
@@ -306,10 +303,10 @@ void pysqlite_statement_bind_parameters(pysqlite_Statement* self, PyObject* para
                 return;
             }
 
-            if (!_need_adapt(current_param)) {
+            if (!_need_adapt(state, current_param)) {
                 adapted = current_param;
             } else {
-                adapted = pysqlite_microprotocols_adapt(current_param, (PyObject*)state->PrepareProtocolType, current_param);
+                adapted = pysqlite_microprotocols_adapt(state, current_param, (PyObject*)state->PrepareProtocolType, current_param);
                 Py_DECREF(current_param);
                 if (!adapted) {
                     return;
@@ -484,7 +481,7 @@ static PyType_Spec stmt_spec = {
 
 extern int pysqlite_statement_setup_types(PyObject *module)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_get_state(module);
 
     state->StatementType = (PyTypeObject *)PyType_FromModuleAndSpec(module, &stmt_spec, NULL);
     if (state->StatementType == NULL) {

@@ -24,7 +24,7 @@ pysqlite_connection_init(PyObject *self, PyObject *args, PyObject *kwargs)
     int detect_types = 0;
     PyObject *isolation_level = NULL;
     int check_same_thread = 1;
-    PyObject *factory = (PyObject*)pysqlite_global_state.ConnectionType;
+    PyObject *factory = (PyObject *)Py_TYPE(self);
     int cached_statements = 100;
     int uri = 0;
 
@@ -616,7 +616,7 @@ pysqlite_connection_backup(pysqlite_Connection *self, PyTypeObject *cls, PyObjec
     double sleep = 0.25;
 
     if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
-        pysqlite_global_state.ConnectionType, &target, &pages, &progress, &name, &sleep)) {
+        pysqlite_cls_get_state(cls)->ConnectionType, &target, &pages, &progress, &name, &sleep)) {
         goto exit;
     }
     return_value = pysqlite_connection_backup_impl(self, cls, target, pages, progress, name, sleep);
@@ -720,4 +720,4 @@ exit:
 #ifndef PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
     #define PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
 #endif /* !defined(PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF) */
-/*[clinic end generated code: output=16810cce85155fa9 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=398fa9717715984d input=a9049054013a1b77]*/

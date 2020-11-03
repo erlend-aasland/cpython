@@ -110,7 +110,7 @@ typedef struct {
 
 PyObject* pysqlite_connection_alloc(PyTypeObject* type, int aware);
 void pysqlite_connection_dealloc(pysqlite_Connection* self);
-PyObject* _pysqlite_connection_begin(pysqlite_Connection* self);
+PyObject* _pysqlite_connection_begin(pysqlite_state* state, pysqlite_Connection* self);
 PyObject* pysqlite_connection_new(PyTypeObject* type, PyObject* args, PyObject* kw);
 
 int pysqlite_connection_register_cursor(pysqlite_Connection* connection, PyObject* cursor);

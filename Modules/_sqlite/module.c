@@ -39,8 +39,11 @@ module _sqlite3
 [clinic start generated code]*/
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=81e330492d57488e]*/
 
-/* static objects at module-level */
-pysqlite_state pysqlite_global_state;
+pysqlite_state *pysqlite_get_state(PyObject *module) {
+    pysqlite_state *state =  ((pysqlite_state *)PyModule_GetState(module));
+    assert(state != NULL);
+    return state;
+}
 
 /* Python seems to have no way of extracting a single keyword-arg at
  * C-level, so this code is redundant with the one in connection_init in
@@ -53,7 +56,7 @@ _sqlite3.connect as pysqlite_connect
     detect_types: int = 0
     isolation_level: object = NULL
     check_same_thread: int = 1
-    factory: object(c_default='(PyObject*)pysqlite_global_state.ConnectionType') = ConnectionType
+    factory: object(c_default='(PyObject *)pysqlite_get_state(module)->ConnectionType') = ConnectionType
     cached_statements: int = 100
     uri: bool = False
 
@@ -68,7 +71,7 @@ pysqlite_connect_impl(PyObject *module, PyObject *database, double timeout,
                       int detect_types, PyObject *isolation_level,
                       int check_same_thread, PyObject *factory,
                       int cached_statements, int uri)
-/*[clinic end generated code: output=450ac9078b4868bb input=8f29d4644ee3cfb0]*/
+/*[clinic end generated code: output=450ac9078b4868bb input=f821fd43a7afe4c3]*/
 {
     PyObject* obj_timeout;
     PyObject* obj_detect_types;
@@ -158,7 +161,7 @@ static PyObject *
 pysqlite_enable_shared_cache_impl(PyObject *module, int do_enable)
 /*[clinic end generated code: output=259c74eedee1516b input=8400e41bc58b6b24]*/
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_get_state(module);
     int rc;
 
     rc = sqlite3_enable_shared_cache(do_enable);
@@ -186,7 +189,7 @@ pysqlite_register_adapter_impl(PyObject *module, PyTypeObject *type,
                                PyObject *caster)
 /*[clinic end generated code: output=a287e8db18e8af23 input=839dad90e2492725]*/
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_get_state(module);
     int rc;
 
     /* a basic type is adapted; there's a performance optimization if that's not the case
@@ -218,7 +221,7 @@ pysqlite_register_converter_impl(PyObject *module, PyObject *orig_name,
                                  PyObject *callable)
 /*[clinic end generated code: output=a2f2bfeed7230062 input=e074cf7f4890544f]*/
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_get_state(module);
     PyObject* name = NULL;
     PyObject* retval = NULL;
     _Py_IDENTIFIER(upper);
@@ -253,7 +256,7 @@ static PyObject *
 pysqlite_enable_callback_trace_impl(PyObject *module, int enable)
 /*[clinic end generated code: output=4ff1d051c698f194 input=cb79d3581eb77c40]*/
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_get_state(module);
 
     state->enable_callback_tracebacks = enable;
 
@@ -264,7 +267,7 @@ pysqlite_enable_callback_trace_impl(PyObject *module, int enable)
 _sqlite3.adapt as pysqlite_adapt
 
     obj: object
-    proto: object(c_default='(PyObject*)pysqlite_global_state.PrepareProtocolType') = PrepareProtocolType
+    proto: object(c_default='(PyObject*)pysqlite_get_state(module)->PrepareProtocolType') = PrepareProtocolType
     alt: object = NULL
     /
 
@@ -274,14 +277,14 @@ Adapt given object to given protocol. Non-standard.
 static PyObject *
 pysqlite_adapt_impl(PyObject *module, PyObject *obj, PyObject *proto,
                     PyObject *alt)
-/*[clinic end generated code: output=0c3927c5fcd23dd9 input=ca371b16b9079f09]*/
+/*[clinic end generated code: output=0c3927c5fcd23dd9 input=0d05fd95e8241643]*/
 {
-    return pysqlite_microprotocols_adapt(obj, proto, alt);
+    return pysqlite_microprotocols_adapt(pysqlite_get_state(module), obj, proto, alt);
 }
 
 static void converters_init(PyObject* module)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state = pysqlite_get_state(module);
 
     state->converters = PyDict_New();
     if (!state->converters) {
@@ -352,10 +355,10 @@ static int add_integer_constants(PyObject *module) {
     return ret;
 }
 
-static struct PyModuleDef _sqlite3module = {
+struct PyModuleDef _sqlite3module = {
     PyModuleDef_HEAD_INIT,
     .m_name = "_sqlite3",
-    .m_size = -1,
+    .m_size = sizeof(pysqlite_state),
     .m_methods = module_methods,
 };
 
@@ -381,7 +384,7 @@ do {                                                            \
 
 PyMODINIT_FUNC PyInit__sqlite3(void)
 {
-    pysqlite_state *state = &pysqlite_global_state;
+    pysqlite_state *state;
     PyObject *module;
 
     if (sqlite3_libversion_number() < 3007003) {
@@ -390,16 +393,19 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
     }
 
     module = PyModule_Create(&_sqlite3module);
+    if (!module) {
+        return NULL;
+    }
+    state = pysqlite_get_state(module);
 
-    if (!module ||
-        (pysqlite_row_setup_types(module) < 0) ||
+    if ((pysqlite_row_setup_types(module) < 0) ||
         (pysqlite_cursor_setup_types(module) < 0) ||
         (pysqlite_connection_setup_types(module) < 0) ||
         (pysqlite_cache_setup_types(module) < 0) ||
         (pysqlite_statement_setup_types(module) < 0) ||
         (pysqlite_prepare_protocol_setup_types(module) < 0)
        ) {
-        Py_XDECREF(module);
+        Py_DECREF(module);
         return NULL;
     }
 
