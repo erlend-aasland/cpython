@@ -282,19 +282,20 @@ pysqlite_adapt_impl(PyObject *module, PyObject *obj, PyObject *proto,
     return pysqlite_microprotocols_adapt(pysqlite_get_state(module), obj, proto, alt);
 }
 
-static void converters_init(PyObject* module)
+static int converters_init(PyObject* module)
 {
     pysqlite_state *state = pysqlite_get_state(module);
 
     state->converters = PyDict_New();
     if (!state->converters) {
-        return;
+        return -1;
     }
 
     if (PyModule_AddObject(module, "converters", state->converters) < 0) {
         Py_DECREF(state->converters);
+        return -1;
     }
-    return;
+    return 0;
 }
 
 static PyMethodDef module_methods[] = {
@@ -355,18 +356,72 @@ static int add_integer_constants(PyObject *module) {
     return ret;
 }
 
-struct PyModuleDef _sqlite3module = {
-    PyModuleDef_HEAD_INIT,
-    .m_name = "_sqlite3",
-    .m_size = sizeof(pysqlite_state),
-    .m_methods = module_methods,
-};
+static int pysqlite_traverse(PyObject *module, visitproc visit, void *arg)
+{
+    pysqlite_state *state = pysqlite_get_state(module);
+
+    // Exceptions
+    Py_VISIT(state->DataError);
+    Py_VISIT(state->DatabaseError);
+    Py_VISIT(state->Error);
+    Py_VISIT(state->IntegrityError);
+    Py_VISIT(state->InterfaceError);
+    Py_VISIT(state->InternalError);
+    Py_VISIT(state->NotSupportedError);
+    Py_VISIT(state->OperationalError);
+    Py_VISIT(state->ProgrammingError);
+    Py_VISIT(state->Warning);
+
+    // Types
+    Py_VISIT(state->CacheType);
+    Py_VISIT(state->ConnectionType);
+    Py_VISIT(state->CursorType);
+    Py_VISIT(state->NodeType);
+    Py_VISIT(state->PrepareProtocolType);
+    Py_VISIT(state->RowType);
+    Py_VISIT(state->StatementType);
+
+    // Misc
+    Py_VISIT(state->converters);
+
+    return 0;
+}
+
+static int pysqlite_clear(PyObject *module)
+{
+    pysqlite_state *state = pysqlite_get_state(module);
+
+    // Exceptions
+    Py_CLEAR(state->DataError);
+    Py_CLEAR(state->DatabaseError);
+    Py_CLEAR(state->Error);
+    Py_CLEAR(state->IntegrityError);
+    Py_CLEAR(state->InterfaceError);
+    Py_CLEAR(state->InternalError);
+    Py_CLEAR(state->NotSupportedError);
+    Py_CLEAR(state->OperationalError);
+    Py_CLEAR(state->ProgrammingError);
+    Py_CLEAR(state->Warning);
+
+    // Types
+    Py_CLEAR(state->CacheType);
+    Py_CLEAR(state->ConnectionType);
+    Py_CLEAR(state->CursorType);
+    Py_CLEAR(state->NodeType);
+    Py_CLEAR(state->PrepareProtocolType);
+    Py_CLEAR(state->RowType);
+    Py_CLEAR(state->StatementType);
+
+    // Misc
+    Py_CLEAR(state->converters);
+
+    return 0;
+}
 
 #define ADD_TYPE(module, type)                 \
 do {                                           \
     if (PyModule_AddType(module, type) < 0) {  \
-        Py_DECREF(module);                     \
-        return NULL;                           \
+        goto error;                            \
     }                                          \
 } while (0)
 
@@ -382,21 +437,14 @@ do {                                                            \
     }                                                           \
 } while (0)
 
-PyMODINIT_FUNC PyInit__sqlite3(void)
+static int pysqlite_exec(PyObject *module)
 {
-    pysqlite_state *state;
-    PyObject *module;
+    pysqlite_state *state = pysqlite_get_state(module);
 
     if (sqlite3_libversion_number() < 3007003) {
         PyErr_SetString(PyExc_ImportError, MODULE_NAME ": SQLite 3.7.3 or higher required");
-        return NULL;
+        goto error;
     }
-
-    module = PyModule_Create(&_sqlite3module);
-    if (!module) {
-        return NULL;
-    }
-    state = pysqlite_get_state(module);
 
     if ((pysqlite_row_setup_types(module) < 0) ||
         (pysqlite_cursor_setup_types(module) < 0) ||
@@ -405,8 +453,7 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
         (pysqlite_statement_setup_types(module) < 0) ||
         (pysqlite_prepare_protocol_setup_types(module) < 0)
        ) {
-        Py_DECREF(module);
-        return NULL;
+        goto error;
     }
 
     ADD_TYPE(module, state->ConnectionType);
@@ -460,14 +507,32 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
     }
 
     /* initialize the default converters */
-    converters_init(module);
+    if (converters_init(module) < 0) {
+        goto error;
+    }
+
+    return 0;
 
 error:
-    if (PyErr_Occurred())
-    {
-        PyErr_SetString(PyExc_ImportError, MODULE_NAME ": init failed");
-        Py_DECREF(module);
-        module = NULL;
-    }
-    return module;
+    return -1;
+}
+
+static struct PyModuleDef_Slot module_slots[] = {
+    {Py_mod_exec, pysqlite_exec},
+    {0, NULL},
+};
+
+struct PyModuleDef _sqlite3module = {
+    PyModuleDef_HEAD_INIT,
+    .m_name = "_sqlite3",
+    .m_size = sizeof(pysqlite_state),
+    .m_methods = module_methods,
+    .m_slots = module_slots,
+    .m_traverse = pysqlite_traverse,
+    .m_clear = pysqlite_clear,
+};
+
+PyMODINIT_FUNC PyInit__sqlite3(void)
+{
+    return PyModuleDef_Init(&_sqlite3module);
 }
