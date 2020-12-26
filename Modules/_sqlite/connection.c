@@ -21,7 +21,6 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-#include "cache.h"
 #include "module.h"
 #include "structmember.h"         // PyMemberDef
 #include "connection.h"
