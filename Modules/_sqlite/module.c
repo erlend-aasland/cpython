@@ -428,6 +428,10 @@ PyMODINIT_FUNC PyInit__sqlite3(void)
         goto error;
     }
 
+    if (load_functools_lru_cache(module) < 0) {
+        goto error;
+    }
+
 error:
     if (PyErr_Occurred())
     {

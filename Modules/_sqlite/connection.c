@@ -57,6 +57,39 @@ static const char * const begin_statements[] = {
 static int pysqlite_connection_set_isolation_level(pysqlite_Connection* self, PyObject* isolation_level, void *Py_UNUSED(ignored));
 static void _pysqlite_drop_unused_cursor_references(pysqlite_Connection* self);
 
+static PyObject *_lru_cache = NULL;
+
+extern int
+load_functools_lru_cache(PyObject *Py_UNUSED(module))
+{
+    PyObject *functools = PyImport_ImportModule("functools");
+    if (functools == NULL) {
+        return -1;
+    }
+    PyObject *lru_cache = PyObject_GetAttrString(functools, "lru_cache");
+    if (lru_cache == NULL) {
+        Py_DECREF(functools);
+        return -1;
+    }
+    _lru_cache = lru_cache;
+    return 0;
+}
+
+static PyObject *
+new_statement_cache(pysqlite_Connection *self, int maxsize)
+{
+    PyObject *args[] = { PyLong_FromLong(maxsize), };
+    PyObject *inner = PyObject_Vectorcall(_lru_cache, args, 1, NULL);
+    Py_XDECREF(args[0]);
+    if (inner == NULL) {
+        return NULL;
+    }
+
+    args[0] = (PyObject *)self;  // Borrowed ref.
+    PyObject *res = PyObject_Vectorcall(inner, args, 1, NULL);
+    Py_DECREF(inner);
+    return res;
+}
 
 int pysqlite_connection_init(pysqlite_Connection* self, PyObject* args, PyObject* kwargs)
 {
@@ -140,7 +173,10 @@ int pysqlite_connection_init(pysqlite_Connection* self, PyObject* args, PyObject
     }
     Py_DECREF(isolation_level);
 
-    self->statement_cache = (pysqlite_Cache*)PyObject_CallFunction((PyObject*)pysqlite_CacheType, "Oi", self, cached_statements);
+    self->statement_cache = new_statement_cache(self, cached_statements);
+    if (self->statement_cache == NULL) {
+        return -1;
+    }
     if (PyErr_Occurred()) {
         return -1;
     }
@@ -154,14 +190,6 @@ int pysqlite_connection_init(pysqlite_Connection* self, PyObject* args, PyObject
     if (!self->statements || !self->cursors) {
         return -1;
     }
-
-    /* By default, the Cache class INCREFs the factory in its initializer, and
-     * decrefs it in its deallocator method. Since this would create a circular
-     * reference here, we're breaking it by decrementing self, and telling the
-     * cache class to not decref the factory (self) in its deallocator.
-     */
-    self->statement_cache->decref_factory = 0;
-    Py_DECREF(self);
 
     self->detect_types = detect_types;
     self->timeout = timeout;
@@ -225,8 +253,17 @@ void pysqlite_do_all_statements(pysqlite_Connection* self, int action, int reset
     }
 }
 
+static int
+connection_traverse(pysqlite_Connection *self, visitproc visit, void *arg)
+{
+    Py_VISIT(Py_TYPE(self));
+    Py_VISIT(self->statement_cache);
+    return 0;
+}
+
 void pysqlite_connection_dealloc(pysqlite_Connection* self)
 {
+    PyObject_GC_UnTrack(self);
     PyTypeObject *tp = Py_TYPE(self);
 
     Py_XDECREF(self->statement_cache);
@@ -275,6 +312,21 @@ int pysqlite_connection_register_cursor(pysqlite_Connection* connection, PyObjec
 error:
     return 0;
 }
+
+
+/*[clinic input]
+_sqlite3.Connection.statement_cache as pysqlite_connection_statement_cache
+
+Return the connection statement cache.
+[clinic start generated code]*/
+
+static PyObject *
+pysqlite_connection_statement_cache_impl(pysqlite_Connection *self)
+/*[clinic end generated code: output=a88b63d0c46650ba input=32465d5ec271ca8c]*/
+{
+    return Py_NewRef(self->statement_cache);
+}
+
 
 /*[clinic input]
 _sqlite3.Connection.cursor as pysqlite_connection_cursor
@@ -1868,6 +1920,7 @@ static PyMethodDef connection_methods[] = {
     PYSQLITE_CONNECTION_SET_AUTHORIZER_METHODDEF
     PYSQLITE_CONNECTION_SET_PROGRESS_HANDLER_METHODDEF
     PYSQLITE_CONNECTION_SET_TRACE_CALLBACK_METHODDEF
+    PYSQLITE_CONNECTION_STATEMENT_CACHE_METHODDEF
     {NULL, NULL}
 };
 
@@ -1897,13 +1950,14 @@ static PyType_Slot connection_slots[] = {
     {Py_tp_new, PyType_GenericNew},
     {Py_tp_init, pysqlite_connection_init},
     {Py_tp_call, pysqlite_connection_call},
+    {Py_tp_traverse, connection_traverse},
     {0, NULL},
 };
 
 static PyType_Spec connection_spec = {
     .name = MODULE_NAME ".Connection",
     .basicsize = sizeof(pysqlite_Connection),
-    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
     .slots = connection_slots,
 };
 

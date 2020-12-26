@@ -64,7 +64,7 @@ typedef struct
     /* thread identification of the thread the connection was created in */
     unsigned long thread_ident;
 
-    pysqlite_Cache* statement_cache;
+    PyObject* statement_cache;
 
     /* Lists of weak references to statements and cursors used within this connection */
     PyObject* statements;
@@ -115,5 +115,6 @@ int pysqlite_check_thread(pysqlite_Connection* self);
 int pysqlite_check_connection(pysqlite_Connection* con);
 
 int pysqlite_connection_setup_types(PyObject *module);
+int load_functools_lru_cache(PyObject *module);
 
 #endif
