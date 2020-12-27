@@ -816,6 +816,55 @@ static void _destructor(void* args)
     Py_DECREF((PyObject*)args);
 }
 
+static int check_deterministic_flag_supported()
+{
+#if SQLITE_VERSION_NUMBER < 3008003
+    PyErr_SetString(pysqlite_NotSupportedError,
+                    "deterministic=True requires SQLite 3.8.3 or higher");
+    return -1;
+#else
+    if (sqlite3_libversion_number() < 3008003) {
+        PyErr_SetString(pysqlite_NotSupportedError,
+                        "deterministic=True requires SQLite 3.8.3 or higher");
+        return -1;
+    }
+    return 0;
+#endif
+}
+
+static int check_innocuous_flag_supported()
+{
+#if SQLITE_VERSION_NUMBER < 3031000
+    PyErr_SetString(pysqlite_NotSupportedError,
+                    "innocuous=True requires SQLite 3.31.0 or higher");
+    return -1;
+#else
+    if (sqlite3_libversion_number() < 3031000) {
+        PyErr_SetString(pysqlite_NotSupportedError,
+                        "innocuous=True requires SQLite 3.31.0 or higher");
+        return -1;
+    }
+    return 0;
+#endif
+}
+
+static int check_directonly_flag_supported()
+{
+#if SQLITE_VERSION_NUMBER < 3030000
+    PyErr_SetString(pysqlite_NotSupportedError,
+                    "directonly=True requires SQLite 3.30.0 or higher");
+    return -1;
+#else
+    if (sqlite3_libversion_number() < 3030000) {
+        PyErr_SetString(pysqlite_NotSupportedError,
+                        "directonly=True requires SQLite 3.30.0 or higher");
+        return -1;
+    }
+    return 0;
+#endif
+}
+
+
 /*[clinic input]
 _sqlite3.Connection.create_function as pysqlite_connection_create_function
 
@@ -842,18 +891,10 @@ pysqlite_connection_create_function_impl(pysqlite_Connection *self,
     }
 
     if (deterministic) {
-#if SQLITE_VERSION_NUMBER < 3008003
-        PyErr_SetString(pysqlite_NotSupportedError,
-                        "deterministic=True requires SQLite 3.8.3 or higher");
-        return NULL;
-#else
-        if (sqlite3_libversion_number() < 3008003) {
-            PyErr_SetString(pysqlite_NotSupportedError,
-                            "deterministic=True requires SQLite 3.8.3 or higher");
+        if (check_deterministic_flag_supported() < 0) {
             return NULL;
         }
         flags |= SQLITE_DETERMINISTIC;
-#endif
     }
     rc = sqlite3_create_function_v2(self->db,
                                     name,
@@ -970,7 +1011,6 @@ error:
 }
 #endif
 
-
 /*[clinic input]
 _sqlite3.Connection.create_window_function as pysqlite_connection_create_window_function
 
@@ -981,6 +1021,10 @@ _sqlite3.Connection.create_window_function as pysqlite_connection_create_window_
     aggregate_class: object
         A class with step(), final(), value(), and inverse() methods
     /
+    *
+    deterministic: bool = False
+    directonly: bool = False
+    innocuous: bool = False
 
 Creates or redefines an aggregate window function. Non-standard.
 [clinic start generated code]*/
@@ -988,8 +1032,11 @@ Creates or redefines an aggregate window function. Non-standard.
 static PyObject *
 pysqlite_connection_create_window_function_impl(pysqlite_Connection *self,
                                                 const char *name, int n_arg,
-                                                PyObject *aggregate_class)
-/*[clinic end generated code: output=603cff9beeaff04d input=f259442c9a75658e]*/
+                                                PyObject *aggregate_class,
+                                                int deterministic,
+                                                int directonly,
+                                                int innocuous)
+/*[clinic end generated code: output=e8710bde81dddd89 input=a96bcee8ef6f754c]*/
 #ifdef HAVE_WINDOW_FUNCTIONS
 {
     if (sqlite3_libversion_number() < 3025000) {
@@ -1003,6 +1050,25 @@ pysqlite_connection_create_window_function_impl(pysqlite_Connection *self,
     }
 
     int flags = SQLITE_UTF8;
+    if (deterministic) {
+        if (check_deterministic_flag_supported() < 0) {
+            return NULL;
+        }
+        flags |= SQLITE_DETERMINISTIC;
+    }
+    if (directonly) {
+        if (check_directonly_flag_supported() < 0) {
+            return NULL;
+        }
+        flags |= SQLITE_DIRECTONLY;
+    }
+    if (innocuous) {
+        if (check_innocuous_flag_supported() < 0) {
+            return NULL;
+        }
+        flags |= SQLITE_INNOCUOUS;
+    }
+
     int rc = sqlite3_create_window_function(self->db,
                                             name,
                                             n_arg,
