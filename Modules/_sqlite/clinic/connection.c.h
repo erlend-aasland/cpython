@@ -156,6 +156,62 @@ exit:
     return return_value;
 }
 
+PyDoc_STRVAR(pysqlite_connection_create_window_function__doc__,
+"create_window_function($self, name, n_arg, aggregate_class, /)\n"
+"--\n"
+"\n"
+"Creates or redefines an aggregate window function. Non-standard.\n"
+"\n"
+"  name\n"
+"    The name of the SQL aggregate window function to be created or redefined\n"
+"  n_arg\n"
+"    The number of arguments that the SQL aggregate window function takes\n"
+"  aggregate_class\n"
+"    A class with step(), final(), value(), and inverse() methods");
+
+#define PYSQLITE_CONNECTION_CREATE_WINDOW_FUNCTION_METHODDEF    \
+    {"create_window_function", (PyCFunction)(void(*)(void))pysqlite_connection_create_window_function, METH_FASTCALL, pysqlite_connection_create_window_function__doc__},
+
+static PyObject *
+pysqlite_connection_create_window_function_impl(pysqlite_Connection *self,
+                                                const char *name, int n_arg,
+                                                PyObject *aggregate_class);
+
+static PyObject *
+pysqlite_connection_create_window_function(pysqlite_Connection *self, PyObject *const *args, Py_ssize_t nargs)
+{
+    PyObject *return_value = NULL;
+    const char *name;
+    int n_arg;
+    PyObject *aggregate_class;
+
+    if (!_PyArg_CheckPositional("create_window_function", nargs, 3, 3)) {
+        goto exit;
+    }
+    if (!PyUnicode_Check(args[0])) {
+        _PyArg_BadArgument("create_window_function", "argument 1", "str", args[0]);
+        goto exit;
+    }
+    Py_ssize_t name_length;
+    name = PyUnicode_AsUTF8AndSize(args[0], &name_length);
+    if (name == NULL) {
+        goto exit;
+    }
+    if (strlen(name) != (size_t)name_length) {
+        PyErr_SetString(PyExc_ValueError, "embedded null character");
+        goto exit;
+    }
+    n_arg = _PyLong_AsInt(args[1]);
+    if (n_arg == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    aggregate_class = args[2];
+    return_value = pysqlite_connection_create_window_function_impl(self, name, n_arg, aggregate_class);
+
+exit:
+    return return_value;
+}
+
 PyDoc_STRVAR(pysqlite_connection_create_aggregate__doc__,
 "create_aggregate($self, /, name, n_arg, aggregate_class)\n"
 "--\n"
@@ -719,4 +775,4 @@ exit:
 #ifndef PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
     #define PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
 #endif /* !defined(PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF) */
-/*[clinic end generated code: output=7cb13d491a5970aa input=a9049054013a1b77]*/
+/*[clinic end generated code: output=f83bb54fa960350e input=a9049054013a1b77]*/

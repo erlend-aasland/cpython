@@ -968,13 +968,29 @@ error:
     Py_XDECREF(method_result);
     PyGILState_Release(gilstate);
 }
+#endif
 
-/*
- * Create an aggregate window function.
- *
- * See https://www.sqlite.org/windowfunctions.html#aggwinfunc
- */
-static PyObject* pysqlite_connection_create_window_function(PyObject *self, PyObject *const *args, Py_ssize_t nargs)
+
+/*[clinic input]
+_sqlite3.Connection.create_window_function as pysqlite_connection_create_window_function
+
+    name: str
+        The name of the SQL aggregate window function to be created or redefined
+    n_arg: int
+        The number of arguments that the SQL aggregate window function takes
+    aggregate_class: object
+        A class with step(), final(), value(), and inverse() methods
+    /
+
+Creates or redefines an aggregate window function. Non-standard.
+[clinic start generated code]*/
+
+static PyObject *
+pysqlite_connection_create_window_function_impl(pysqlite_Connection *self,
+                                                const char *name, int n_arg,
+                                                PyObject *aggregate_class)
+/*[clinic end generated code: output=603cff9beeaff04d input=f259442c9a75658e]*/
+#ifdef HAVE_WINDOW_FUNCTIONS
 {
     if (sqlite3_libversion_number() < 3025000) {
         PyErr_SetString(pysqlite_NotSupportedError,
@@ -982,14 +998,7 @@ static PyObject* pysqlite_connection_create_window_function(PyObject *self, PyOb
         return NULL;
     }
 
-    if (nargs != 3) {
-        PyErr_SetString(pysqlite_OperationalError,
-                        "create_window_function() requires three arguments");
-        return NULL;
-    }
-
-    pysqlite_Connection *con = (pysqlite_Connection *)self;
-    if (!pysqlite_check_thread(con) || !pysqlite_check_connection(con)) {
+    if (!pysqlite_check_thread(self) || !pysqlite_check_connection(self)) {
         return NULL;
     }
 
@@ -1008,20 +1017,11 @@ static PyObject* pysqlite_connection_create_window_function(PyObject *self, PyOb
     flags |= SQLITE_SUBTYPE;
 #endif
 
-    const char *name = PyUnicode_AsUTF8(args[0]);
-    int n_arg = PyLong_AsLong(args[1]);
-    PyObject *aggregate_class = Py_NewRef(args[2]);
-
-    if (PyErr_Occurred()) {
-        PyErr_Print();
-        return NULL;
-    }
-
-    int rc = sqlite3_create_window_function(con->db,
+    int rc = sqlite3_create_window_function(self->db,
                                             name,
                                             n_arg,
                                             flags,
-                                            (void*)aggregate_class,
+                                            (void*)Py_NewRef(aggregate_class),
                                             &_pysqlite_step_callback,
                                             &_pysqlite_final_callback,
                                             &_pysqlite_value_callback,
@@ -1036,7 +1036,6 @@ static PyObject* pysqlite_connection_create_window_function(PyObject *self, PyOb
     Py_RETURN_NONE;
 }
 #else
-static PyObject* pysqlite_connection_create_window_function(PyObject *self, PyObject *const *args, Py_ssize_t nargs)
 {
     PyErr_SetString(pysqlite_NotSupportedError,
                     "create_window_function() requires SQLite 3.25.0 or higher");
@@ -2055,6 +2054,7 @@ static PyMethodDef connection_methods[] = {
     PYSQLITE_CONNECTION_CREATE_AGGREGATE_METHODDEF
     PYSQLITE_CONNECTION_CREATE_COLLATION_METHODDEF
     PYSQLITE_CONNECTION_CREATE_FUNCTION_METHODDEF
+    PYSQLITE_CONNECTION_CREATE_WINDOW_FUNCTION_METHODDEF
     PYSQLITE_CONNECTION_CURSOR_METHODDEF
     PYSQLITE_CONNECTION_ENABLE_LOAD_EXTENSION_METHODDEF
     PYSQLITE_CONNECTION_ENTER_METHODDEF
@@ -2069,8 +2069,6 @@ static PyMethodDef connection_methods[] = {
     PYSQLITE_CONNECTION_SET_AUTHORIZER_METHODDEF
     PYSQLITE_CONNECTION_SET_PROGRESS_HANDLER_METHODDEF
     PYSQLITE_CONNECTION_SET_TRACE_CALLBACK_METHODDEF
-    {"create_window_function", (PyCFunction)(void(*)(void))pysqlite_connection_create_window_function, METH_FASTCALL,
-        PyDoc_STR("Creates a new window function. Non-standard.")},
     {NULL, NULL}
 };
 
