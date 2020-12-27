@@ -169,7 +169,7 @@ PyDoc_STRVAR(pysqlite_connection_create_window_function__doc__,
 "  n_arg\n"
 "    The number of arguments that the SQL aggregate window function takes\n"
 "  aggregate_class\n"
-"    A class with step(), final(), value(), and inverse() methods");
+"    A class with step(), final(), value(), and inverse() methods. Set to None to clear the window function.");
 
 #define PYSQLITE_CONNECTION_CREATE_WINDOW_FUNCTION_METHODDEF    \
     {"create_window_function", (PyCFunction)(void(*)(void))pysqlite_connection_create_window_function, METH_FASTCALL|METH_KEYWORDS, pysqlite_connection_create_window_function__doc__},
@@ -814,4 +814,4 @@ exit:
 #ifndef PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
     #define PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF
 #endif /* !defined(PYSQLITE_CONNECTION_LOAD_EXTENSION_METHODDEF) */
-/*[clinic end generated code: output=00f2cfe66b120e2a input=a9049054013a1b77]*/
+/*[clinic end generated code: output=ba7f3caaa6e6bec3 input=a9049054013a1b77]*/

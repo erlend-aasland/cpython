@@ -1036,7 +1036,7 @@ pysqlite_connection_create_window_function_impl(pysqlite_Connection *self,
                                                 int deterministic,
                                                 int directonly,
                                                 int innocuous)
-/*[clinic end generated code: output=e8710bde81dddd89 input=a96bcee8ef6f754c]*/
+/*[clinic end generated code: output=e8710bde81dddd89 input=699c308c45326ad3]*/
 #ifdef HAVE_WINDOW_FUNCTIONS
 {
     if (sqlite3_libversion_number() < 3025000) {
