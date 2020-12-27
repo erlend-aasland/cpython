@@ -1019,7 +1019,7 @@ _sqlite3.Connection.create_window_function as pysqlite_connection_create_window_
     n_arg: int
         The number of arguments that the SQL aggregate window function takes
     aggregate_class: object
-        A class with step(), final(), value(), and inverse() methods
+        A class with step(), final(), value(), and inverse() methods. Set to None to clear the window function.
     /
     *
     deterministic: bool = False
@@ -1069,7 +1069,16 @@ pysqlite_connection_create_window_function_impl(pysqlite_Connection *self,
         flags |= SQLITE_INNOCUOUS;
     }
 
-    int rc = sqlite3_create_window_function(self->db,
+    int rc;
+    if (aggregate_class == Py_None) {
+        rc = sqlite3_create_window_function(self->db,
+                                            name,
+                                            n_arg,
+                                            flags,
+                                            0, 0, 0, 0, 0, 0);
+    }
+    else {
+        rc = sqlite3_create_window_function(self->db,
                                             name,
                                             n_arg,
                                             flags,
@@ -1079,6 +1088,7 @@ pysqlite_connection_create_window_function_impl(pysqlite_Connection *self,
                                             &_pysqlite_value_callback,
                                             &_pysqlite_inverse_callback,
                                             &_destructor);
+    }
 
     if (rc != SQLITE_OK) {
         PyErr_SetString(pysqlite_OperationalError,
