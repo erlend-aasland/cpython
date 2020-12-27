@@ -1003,20 +1003,6 @@ pysqlite_connection_create_window_function_impl(pysqlite_Connection *self,
     }
 
     int flags = SQLITE_UTF8;
-#if SQLITE_VERSION_NUMBER >= 3030000
-/*
- * From the SQLite docs:
- * The SQLITE_SUBTYPE flag indicates to SQLite that a function may call
- * sqlite3_value_subtype() to inspect the sub-types of it's arguments.
- * Specifying this flag makes no difference for scalar or aggregate user
- * functions.  However, if it is not specified for a user-defined window
- * function, then any sub-types belonging to arguments passed to the window
- * function may be discarded before the window function is called (i.e.
- * sqlite3_value_subtype() will always return 0.)
- */
-    flags |= SQLITE_SUBTYPE;
-#endif
-
     int rc = sqlite3_create_window_function(self->db,
                                             name,
                                             n_arg,
