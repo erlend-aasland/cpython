@@ -505,6 +505,15 @@ Connection Objects
 
       .. XXX what's a db_row-based solution?
 
+   .. method:: statement_cache()
+
+      Returns the LRU statement cache for this connection.  The statement cache
+      is implemented using :meth:`functools.lru_cache`, so it's possible to
+      inspect its state by calling ``cache_info()`` or
+      ``cache_parameters()`` on the returned object.  The cache can be cleared
+      by calling ``cache_clear()`` on the returned object.
+
+      .. versionadded:: 3.10
 
    .. attribute:: text_factory
 
