@@ -33,6 +33,7 @@ class _sqlite3.Row "pysqlite_Row *" "pysqlite_RowType"
 
 void pysqlite_row_dealloc(pysqlite_Row* self)
 {
+    PyObject_GC_UnTrack(self);
     PyTypeObject *tp = Py_TYPE(self);
 
     Py_XDECREF(self->data);
@@ -213,6 +214,13 @@ static PyObject* pysqlite_row_richcompare(pysqlite_Row *self, PyObject *_other, 
     Py_RETURN_NOTIMPLEMENTED;
 }
 
+static int
+pysqlite_row_traverse(PyObject *self, visitproc visit, void *arg)
+{
+    Py_VISIT(Py_TYPE(self));
+    return 0;
+}
+
 static PyMethodDef row_methods[] = {
     PYSQLITE_ROW_KEYS_METHODDEF
     {NULL, NULL}
@@ -229,13 +237,14 @@ static PyType_Slot row_slots[] = {
     {Py_sq_length, pysqlite_row_length},
     {Py_sq_item, pysqlite_row_item},
     {Py_tp_new, pysqlite_row_new},
+    {Py_tp_traverse, pysqlite_row_traverse},
     {0, NULL},
 };
 
 static PyType_Spec row_spec = {
     .name = MODULE_NAME ".Row",
     .basicsize = sizeof(pysqlite_Row),
-    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
     .slots = row_slots,
 };
 
