@@ -45,6 +45,7 @@ pysqlite_Node* pysqlite_new_node(PyObject* key, PyObject* data)
 
 void pysqlite_node_dealloc(pysqlite_Node* self)
 {
+    PyObject_GC_UnTrack(self);
     PyTypeObject *tp = Py_TYPE(self);
 
     Py_DECREF(self->key);
@@ -52,6 +53,13 @@ void pysqlite_node_dealloc(pysqlite_Node* self)
 
     tp->tp_free(self);
     Py_DECREF(tp);
+}
+
+static int
+pysqlite_node_traverse(PyObject *self, visitproc visit, void *arg)
+{
+    Py_VISIT(Py_TYPE(self));
+    return 0;
 }
 
 int pysqlite_cache_init(pysqlite_Cache* self, PyObject* args, PyObject* kwargs)
@@ -263,14 +271,14 @@ pysqlite_cache_traverse(PyObject *self, visitproc visit, void *arg)
 
 static PyType_Slot node_slots[] = {
     {Py_tp_dealloc, pysqlite_node_dealloc},
-    {Py_tp_new, PyType_GenericNew},
+    {Py_tp_traverse, pysqlite_node_traverse},
     {0, NULL},
 };
 
 static PyType_Spec node_spec = {
     .name = MODULE_NAME ".Node",
     .basicsize = sizeof(pysqlite_Node),
-    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
     .slots = node_slots,
 };
 PyTypeObject *pysqlite_NodeType = NULL;
