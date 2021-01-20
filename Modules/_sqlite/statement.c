@@ -370,6 +370,7 @@ void pysqlite_statement_mark_dirty(pysqlite_Statement* self)
 
 void pysqlite_statement_dealloc(pysqlite_Statement* self)
 {
+    PyObject_GC_UnTrack(self);
     PyTypeObject *tp = Py_TYPE(self);
 
     if (self->st) {
@@ -388,6 +389,13 @@ void pysqlite_statement_dealloc(pysqlite_Statement* self)
 
     tp->tp_free(self);
     Py_DECREF(tp);
+}
+
+static int
+pysqlite_statement_traverse(PyObject *self, visitproc visit, void *arg)
+{
+    Py_VISIT(Py_TYPE(self));
+    return 0;
 }
 
 /*
@@ -467,14 +475,14 @@ static PyMemberDef stmt_members[] = {
 static PyType_Slot stmt_slots[] = {
     {Py_tp_members, stmt_members},
     {Py_tp_dealloc, pysqlite_statement_dealloc},
-    {Py_tp_new, PyType_GenericNew},
+    {Py_tp_traverse, pysqlite_statement_traverse},
     {0, NULL},
 };
 
 static PyType_Spec stmt_spec = {
     .name = MODULE_NAME ".Statement",
     .basicsize = sizeof(pysqlite_Statement),
-    .flags = Py_TPFLAGS_DEFAULT,
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
     .slots = stmt_slots,
 };
 PyTypeObject *pysqlite_StatementType = NULL;
