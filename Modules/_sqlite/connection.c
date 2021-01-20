@@ -227,6 +227,7 @@ void pysqlite_do_all_statements(pysqlite_Connection* self, int action, int reset
 
 void pysqlite_connection_dealloc(pysqlite_Connection* self)
 {
+    PyObject_GC_UnTrack(self);
     PyTypeObject *tp = Py_TYPE(self);
 
     Py_XDECREF(self->statement_cache);
@@ -1342,6 +1343,13 @@ error:
     return NULL;
 }
 
+static int
+pysqlite_connection_traverse(PyObject *self, visitproc visit, void *arg)
+{
+    Py_VISIT(Py_TYPE(self));
+    return 0;
+}
+
 /*[clinic input]
 _sqlite3.Connection.execute as pysqlite_connection_execute
 
@@ -1894,16 +1902,16 @@ static PyType_Slot connection_slots[] = {
     {Py_tp_methods, connection_methods},
     {Py_tp_members, connection_members},
     {Py_tp_getset, connection_getset},
-    {Py_tp_new, PyType_GenericNew},
     {Py_tp_init, pysqlite_connection_init},
     {Py_tp_call, pysqlite_connection_call},
+    {Py_tp_traverse, pysqlite_connection_traverse},
     {0, NULL},
 };
 
 static PyType_Spec connection_spec = {
     .name = MODULE_NAME ".Connection",
     .basicsize = sizeof(pysqlite_Connection),
-    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
     .slots = connection_slots,
 };
 
