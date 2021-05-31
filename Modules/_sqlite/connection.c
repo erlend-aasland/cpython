@@ -179,6 +179,7 @@ pysqlite_connection_init(pysqlite_Connection *self, PyObject *args,
         return -1;
     }
 
+    fprintf(stderr, "connection.__init__(%p)\n", self);
     return 0;
 }
 
@@ -253,6 +254,7 @@ connection_clear(pysqlite_Connection *self)
 static void
 connection_dealloc(pysqlite_Connection *self)
 {
+    fprintf(stderr, "connection dealloc: %p\n", self);
     PyTypeObject *tp = Py_TYPE(self);
     PyObject_GC_UnTrack(self);
     tp->tp_clear((PyObject *)self);
@@ -347,6 +349,7 @@ pysqlite_connection_close_impl(pysqlite_Connection *self)
 {
     int rc;
 
+    fprintf(stderr, "connection.close(%p)\n", self);
     if (!pysqlite_check_thread(self)) {
         return NULL;
     }
@@ -1833,6 +1836,7 @@ static PyObject *
 pysqlite_connection_enter_impl(pysqlite_Connection *self)
 /*[clinic end generated code: output=457b09726d3e9dcd input=127d7a4f17e86d8f]*/
 {
+    fprintf(stderr, "connection.__enter__(%p)\n", self);
     return Py_NewRef((PyObject *)self);
 }
 
@@ -1854,6 +1858,7 @@ pysqlite_connection_exit_impl(pysqlite_Connection *self, PyObject *exc_type,
                               PyObject *exc_value, PyObject *exc_tb)
 /*[clinic end generated code: output=0705200e9321202a input=bd66f1532c9c54a7]*/
 {
+    fprintf(stderr, "connection.__exit__(%p)\n", self);
     const char* method_name;
     PyObject* result;
 

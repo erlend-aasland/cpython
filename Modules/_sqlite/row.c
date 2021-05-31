@@ -51,6 +51,7 @@ row_traverse(pysqlite_Row *self, visitproc visit, void *arg)
 static void
 pysqlite_row_dealloc(PyObject *self)
 {
+    fprintf(stderr, "row dealloc: %p\n", self);
     PyTypeObject *tp = Py_TYPE(self);
     PyObject_GC_UnTrack(self);
     tp->tp_clear(self);
@@ -84,6 +85,7 @@ pysqlite_row_new_impl(PyTypeObject *type, pysqlite_Cursor *cursor,
     self->data = Py_NewRef(data);
     self->description = Py_NewRef(cursor->description);
 
+    fprintf(stderr, "row.__new__(%p)\n", self);
     return (PyObject *) self;
 }
 

@@ -78,6 +78,7 @@ pysqlite_cursor_init_impl(pysqlite_Cursor *self,
 
     self->initialized = 1;
 
+    fprintf(stderr, "cursor.__init__(%p)\n", self);
     return 0;
 }
 
@@ -116,6 +117,7 @@ cursor_clear(pysqlite_Cursor *self)
 static void
 cursor_dealloc(pysqlite_Cursor *self)
 {
+    fprintf(stderr, "cursor dealloc: %p\n", self);
     PyTypeObject *tp = Py_TYPE(self);
     PyObject_GC_UnTrack(self);
     if (self->in_weakreflist != NULL) {

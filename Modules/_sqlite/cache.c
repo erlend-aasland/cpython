@@ -41,6 +41,7 @@ pysqlite_new_node(PyObject *key, PyObject *data)
     node->prev = NULL;
     node->next = NULL;
 
+    fprintf(stderr, "node.__new__(%p)\n", node);
     return node;
 }
 
@@ -64,6 +65,7 @@ node_clear(pysqlite_Node *self)
 static void
 pysqlite_node_dealloc(pysqlite_Node *self)
 {
+    fprintf(stderr, "node dealloc: %p\n", self);
     PyTypeObject *tp = Py_TYPE(self);
     PyObject_GC_UnTrack(self);
     tp->tp_clear((PyObject *)self);
@@ -97,6 +99,7 @@ pysqlite_cache_init(pysqlite_Cache *self, PyObject *args, PyObject *kwargs)
     }
 
     self->factory = Py_NewRef(factory);
+    fprintf(stderr, "cache.__init__(%p)\n", self);
     return 0;
 }
 
@@ -135,6 +138,7 @@ cache_clear(pysqlite_Cache *self)
 static void
 pysqlite_cache_dealloc(pysqlite_Cache *self)
 {
+    fprintf(stderr, "cache dealloc: %p\n", self);
     if (!self->factory) {
         /* constructor failed, just get out of here */
         return;

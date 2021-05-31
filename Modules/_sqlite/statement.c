@@ -109,6 +109,7 @@ int pysqlite_statement_create(pysqlite_Statement* self, pysqlite_Connection* con
         rc = PYSQLITE_TOO_MUCH_SQL;
     }
 
+    fprintf(stderr, "stmt create: %p => %d\n", self, rc);
     return rc;
 }
 
@@ -371,6 +372,7 @@ void pysqlite_statement_mark_dirty(pysqlite_Statement* self)
 static void
 stmt_dealloc(pysqlite_Statement *self)
 {
+    fprintf(stderr, "stmt dealloc: %p\n", self);
     PyTypeObject *tp = Py_TYPE(self);
     PyObject_GC_UnTrack(self);
     if (self->in_weakreflist != NULL) {
