@@ -170,6 +170,8 @@ class ConnectionTests(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.cx.in_transaction = True
 
+
+class OpenTests(unittest.TestCase):
     def test_open_with_path_like_object(self):
         """ Checks that we can successfully connect to a database using an object that
             is PathLike, i.e. has __fspath__(). """
@@ -942,6 +944,7 @@ def suite():
         CursorTests,
         ExtensionTests,
         ModuleTests,
+        OpenTests,
         SqliteOnConflictTests,
         ThreadTests,
     ]
