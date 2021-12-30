@@ -54,6 +54,17 @@ jobs:
             git diff --name-only origin/$GITHUB_BASE_REF.. | grep -qE '(ssl|hashlib|hmac|^.github)' && echo '::set-output name=run_ssl_tests::true' || true
           fi
 
+  lint:
+    name: 'Linter'
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Fetch base"
+        run: git fetch origin --depth=1 $GITHUB_BASE_REF
+      - name: "Check for whitespace errors"
+        run: git diff --check origin/$GITHUB_BASE_REF
+
   check_generated_files:
     name: 'Check if generated files are up to date'
     runs-on: ubuntu-latest
