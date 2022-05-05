@@ -1790,6 +1790,17 @@ Deprecated
 * Deprecate the ``ob_shash`` member of the :c:type:`PyBytesObject`. Use :c:func:`PyObject_Hash` instead.
   (Contributed by Inada Naoki in :issue:`46864`.)
 
+Pending Removal
+---------------
+
+Python 3.12
+^^^^^^^^^^^
+
+* The ``PyUnicode_InternImmortal()`` function is now deprecated
+  and will be removed in Python 3.12: use :c:func:`PyUnicode_InternInPlace`
+  instead.
+  (Contributed by Victor Stinner in :issue:`41692`.)
+
 Removed
 -------
 
