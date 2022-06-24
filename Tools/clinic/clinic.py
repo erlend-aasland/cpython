@@ -1050,6 +1050,16 @@ class CLanguage(Language):
                                 goto %s;
                             }}
                             """ % add_label, indent=4))
+                    if p.deprecated_positional:
+                        parser_code.append(normalize_snippet("""
+                            if (nargs == %s) {{
+                                if (PyErr_WarnEx(PyExc_DeprecationWarning,
+                                    "Using '%s' as positional argument is deprecated", 2))
+                                {{
+                                    goto exit;
+                                }}
+                            }}
+                            """ % (str(i+1), p.name), indent=4))
                     if i + 1 == len(parameters):
                         parser_code.append(normalize_snippet(parsearg, indent=4))
                     else:
@@ -2372,7 +2382,7 @@ class Parameter:
 
     def __init__(self, name, kind, *, default=inspect.Parameter.empty,
                  function, converter, annotation=inspect.Parameter.empty,
-                 docstring=None, group=0):
+                 docstring=None, group=0, deprecated_positional=False):
         self.name = name
         self.kind = kind
         self.default = default
@@ -2381,6 +2391,7 @@ class Parameter:
         self.annotation = annotation
         self.docstring = docstring or ''
         self.group = group
+        self.deprecated_positional = deprecated_positional
 
     def __repr__(self):
         return '<clinic.Parameter ' + self.name + '>'
@@ -4028,6 +4039,7 @@ class DSLParser:
         self.parameter_indent = None
         self.keyword_only = False
         self.positional_only = False
+        self.deprecated_positional = False
         self.group = 0
         self.parameter_state = self.ps_start
         self.seen_positional_with_default = False
@@ -4468,7 +4480,7 @@ class DSLParser:
 
         line = line.lstrip()
 
-        if line in ('*', '/', '[', ']'):
+        if line in ('x', '*', '/', '[', ']'):
             self.parse_special_symbol(line)
             return
 
@@ -4708,7 +4720,8 @@ class DSLParser:
                 fail("A 'defining_class' parameter, if specified, must either be the first thing in the parameter block, or come just after 'self'.")
 
 
-        p = Parameter(parameter_name, kind, function=self.function, converter=converter, default=value, group=self.group)
+        p = Parameter(parameter_name, kind, function=self.function, converter=converter, default=value, group=self.group,
+                      deprecated_positional=self.deprecated_positional)
 
         if parameter_name in self.function.parameters:
             fail("You can't have two parameters named " + repr(parameter_name) + "!")
@@ -4736,6 +4749,12 @@ class DSLParser:
         return name, False, kwargs
 
     def parse_special_symbol(self, symbol):
+        if symbol == 'x':
+            if self.keyword_only:
+                fail("Function " + self.function.name + ": 'x' must come before '*'")
+            if self.deprecated_positional:
+                fail("Function " + self.function.name + " uses 'x' more than once.")
+            self.deprecated_positional = True
         if symbol == '*':
             if self.keyword_only:
                 fail("Function " + self.function.name + " uses '*' more than once.")
@@ -5100,6 +5119,8 @@ class DSLParser:
                 no_parameter_after_star = last_parameter.kind != inspect.Parameter.KEYWORD_ONLY
             if no_parameter_after_star:
                 fail("Function " + self.function.name + " specifies '*' without any parameters afterwards.")
+
+        # EAA: Add check here
 
         # remove trailing whitespace from all parameter docstrings
         for name, value in self.function.parameters.items():

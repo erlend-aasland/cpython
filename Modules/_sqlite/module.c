@@ -52,6 +52,7 @@ _sqlite3.connect as pysqlite_connect
     isolation_level: object = NULL
     check_same_thread: bool(accept={int}) = True
     factory: object(c_default='(PyObject*)clinic_state()->ConnectionType') = ConnectionType
+    x
     cached_statements: int = 128
     uri: bool = False
 
@@ -66,7 +67,7 @@ pysqlite_connect_impl(PyObject *module, PyObject *database, double timeout,
                       int detect_types, PyObject *isolation_level,
                       int check_same_thread, PyObject *factory,
                       int cached_statements, int uri)
-/*[clinic end generated code: output=450ac9078b4868bb input=e16914663ddf93ce]*/
+/*[clinic end generated code: output=450ac9078b4868bb input=57d6a8263524a38f]*/
 {
     if (isolation_level == NULL) {
         isolation_level = PyUnicode_FromString("");

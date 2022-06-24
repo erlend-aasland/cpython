@@ -92,6 +92,13 @@ pysqlite_connect(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
             goto skip_optional_pos;
         }
     }
+    if (nargs == 7) {
+        if (PyErr_WarnEx(PyExc_DeprecationWarning,
+            "Using 'cached_statements' as positional argument is deprecated", 2))
+        {
+            goto exit;
+        }
+    }
     if (args[6]) {
         cached_statements = _PyLong_AsInt(args[6]);
         if (cached_statements == -1 && PyErr_Occurred()) {
@@ -99,6 +106,13 @@ pysqlite_connect(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyOb
         }
         if (!--noptargs) {
             goto skip_optional_pos;
+        }
+    }
+    if (nargs == 8) {
+        if (PyErr_WarnEx(PyExc_DeprecationWarning,
+            "Using 'uri' as positional argument is deprecated", 2))
+        {
+            goto exit;
         }
     }
     uri = PyObject_IsTrue(args[7]);
@@ -292,4 +306,4 @@ skip_optional:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=9ac18606b0eaec03 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=338da5e2d89b69a0 input=a9049054013a1b77]*/
