@@ -56,4 +56,4 @@ jobs:
     - name: Display build info
       run: make pythoninfo
     - name: Tests
-      run: make buildbottest TESTOPTS="-j4 -uall,-cpu"
+      run: TESTOPTS="-j4 -uall,-cpu" ./python.exe -m test test_tools -v
