@@ -55,6 +55,7 @@ def find_opt(args, name):
 
 
 def ensure_opt(args, name, value):
+    print(f'DEBUGFREEZE: pre ensure_opt, {args=}, {name=}, {value=}')
     opt = f'--{name}'
     pos = find_opt(args, name)
     if value is None:
@@ -72,6 +73,7 @@ def ensure_opt(args, name, value):
             args[pos + 1] = value
         else:
             args[pos] = f'{opt}={value}'
+    print(f'DEBUGFREEZE: post ensure_opt, {args=}, {name=}, {value=}')
 
 
 def copy_source_tree(newroot, oldroot):
@@ -142,15 +144,18 @@ def prepare(script=None, outdir=None):
 
     # Make a copy of the repo to avoid affecting the current build
     # (e.g. changing PREFIX).
+    print(f'DEBUGFREEZE: copy source tree, {srcdir=}, {SRCDIR=}')
     srcdir = os.path.join(outdir, 'cpython')
     copy_source_tree(srcdir, SRCDIR)
 
     # We use an out-of-tree build (instead of srcdir).
+    print(f'DEBUGFREEZE: creating build dir {builddir=}')
     builddir = os.path.join(outdir, 'python-build')
     os.makedirs(builddir, exist_ok=True)
 
     # Run configure.
     print(f'configuring python in {builddir}...')
+    print(f'DEBUGFREEZE: {cmd=}')
     cmd = [
         os.path.join(srcdir, 'configure'),
         *shlex.split(get_config_var(builddir, 'CONFIG_ARGS') or ''),
@@ -174,8 +179,10 @@ def prepare(script=None, outdir=None):
 
     # Build python.
     print(f'building python {parallel=} in {builddir}...')
+    print(f'DEBUGFREEZE: {srcdir=}')
     if os.path.exists(os.path.join(srcdir, 'Makefile')):
         # Out-of-tree builds require a clean srcdir.
+        print(f'DEBUGFREEZE: cleaning {srcdir}')
         _run_quiet([MAKE, '-C', srcdir, 'clean'])
     _run_quiet([MAKE, '-C', builddir, parallel])
 
