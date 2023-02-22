@@ -146,6 +146,7 @@ def prepare(script=None, outdir=None):
     # (e.g. changing PREFIX).
     srcdir = os.path.join(outdir, 'cpython')
     print(f'DEBUGFREEZE: copy source tree, {srcdir=}, {SRCDIR=}')
+    CONFIG_ARGS = shlex.split(get_config_var(srcdir, 'CONFIG_ARGS') or '')
     copy_source_tree(srcdir, SRCDIR)
 
     # We use an out-of-tree build (instead of srcdir).
@@ -154,11 +155,11 @@ def prepare(script=None, outdir=None):
     os.makedirs(builddir, exist_ok=True)
 
     # Run configure.
-    print(f'CONFIG_ARGS={get_config_var(builddir, "CONFIG_ARGS") or ""}')
+    print(f'{CONFIG_ARGS=}')
     print(f'configuring python in {builddir}...')
     cmd = [
         os.path.join(srcdir, 'configure'),
-        *shlex.split(get_config_var(builddir, 'CONFIG_ARGS') or ''),
+        *CONFIG_ARGS,
     ]
     print(f'DEBUGFREEZE: {cmd=}')
     ensure_opt(cmd, 'cache-file', os.path.join(outdir, 'python-config.cache'))
