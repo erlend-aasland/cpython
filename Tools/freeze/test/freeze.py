@@ -149,8 +149,8 @@ def prepare(script=None, outdir=None):
     copy_source_tree(srcdir, SRCDIR)
 
     # We use an out-of-tree build (instead of srcdir).
-    print(f'DEBUGFREEZE: creating build dir {builddir=}')
     builddir = os.path.join(outdir, 'python-build')
+    print(f'DEBUGFREEZE: creating build dir {builddir=}')
     os.makedirs(builddir, exist_ok=True)
 
     # Run configure.
