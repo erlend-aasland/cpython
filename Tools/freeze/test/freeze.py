@@ -20,7 +20,7 @@ class UnsupportedError(Exception):
 
 
 def _run_quiet(cmd, cwd=None):
-    #print(f'# {" ".join(shlex.quote(a) for a in cmd)}')
+    print(f'# {" ".join(shlex.quote(a) for a in cmd)}')
     try:
         return subprocess.run(
             cmd,
