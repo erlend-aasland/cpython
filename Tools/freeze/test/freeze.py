@@ -20,7 +20,7 @@ class UnsupportedError(Exception):
 
 
 def _run_quiet(cmd, cwd=None):
-    print(f'# {" ".join(shlex.quote(a) for a in cmd)}')
+    #print(f'# {" ".join(shlex.quote(a) for a in cmd)}')
     try:
         return subprocess.run(
             cmd,
@@ -55,7 +55,6 @@ def find_opt(args, name):
 
 
 def ensure_opt(args, name, value):
-    print(f'DEBUGFREEZE: pre ensure_opt, {args=}, {name=}, {value=}')
     opt = f'--{name}'
     pos = find_opt(args, name)
     if value is None:
@@ -73,7 +72,6 @@ def ensure_opt(args, name, value):
             args[pos + 1] = value
         else:
             args[pos] = f'{opt}={value}'
-    print(f'DEBUGFREEZE: post ensure_opt, {args=}, {name=}, {value=}')
 
 
 def copy_source_tree(newroot, oldroot):
@@ -145,23 +143,19 @@ def prepare(script=None, outdir=None):
     # Make a copy of the repo to avoid affecting the current build
     # (e.g. changing PREFIX).
     srcdir = os.path.join(outdir, 'cpython')
-    print(f'DEBUGFREEZE: copy source tree, {srcdir=}, {SRCDIR=}')
-    CONFIG_ARGS = shlex.split(get_config_var(srcdir, 'CONFIG_ARGS') or '')
     copy_source_tree(srcdir, SRCDIR)
 
     # We use an out-of-tree build (instead of srcdir).
     builddir = os.path.join(outdir, 'python-build')
-    print(f'DEBUGFREEZE: creating build dir {builddir=}')
     os.makedirs(builddir, exist_ok=True)
 
     # Run configure.
-    print(f'{CONFIG_ARGS=}')
     print(f'configuring python in {builddir}...')
     cmd = [
         os.path.join(srcdir, 'configure'),
-        *CONFIG_ARGS,
+        *shlex.split(get_config_var(srcdir, 'CONFIG_ARGS') or ''),
     ]
-    print(f'DEBUGFREEZE: {cmd=}')
+    print(f'{cmd=}')
     ensure_opt(cmd, 'cache-file', os.path.join(outdir, 'python-config.cache'))
     prefix = os.path.join(outdir, 'python-installation')
     ensure_opt(cmd, 'prefix', prefix)
@@ -181,10 +175,8 @@ def prepare(script=None, outdir=None):
 
     # Build python.
     print(f'building python {parallel=} in {builddir}...')
-    print(f'DEBUGFREEZE: {srcdir=}')
     if os.path.exists(os.path.join(srcdir, 'Makefile')):
         # Out-of-tree builds require a clean srcdir.
-        print(f'DEBUGFREEZE: cleaning {srcdir}')
         _run_quiet([MAKE, '-C', srcdir, 'clean'])
     _run_quiet([MAKE, '-C', builddir, parallel])
 
