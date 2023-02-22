@@ -154,6 +154,7 @@ def prepare(script=None, outdir=None):
     os.makedirs(builddir, exist_ok=True)
 
     # Run configure.
+    print(f'CONFIG_ARGS={get_config_var(builddir, "CONFIG_ARGS") or ""}')
     print(f'configuring python in {builddir}...')
     cmd = [
         os.path.join(srcdir, 'configure'),
