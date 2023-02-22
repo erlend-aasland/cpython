@@ -144,8 +144,8 @@ def prepare(script=None, outdir=None):
 
     # Make a copy of the repo to avoid affecting the current build
     # (e.g. changing PREFIX).
-    print(f'DEBUGFREEZE: copy source tree, {srcdir=}, {SRCDIR=}')
     srcdir = os.path.join(outdir, 'cpython')
+    print(f'DEBUGFREEZE: copy source tree, {srcdir=}, {SRCDIR=}')
     copy_source_tree(srcdir, SRCDIR)
 
     # We use an out-of-tree build (instead of srcdir).
