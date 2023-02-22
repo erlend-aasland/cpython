@@ -160,7 +160,7 @@ def prepare(script=None, outdir=None):
         *shlex.split(get_config_var(builddir, 'CONFIG_ARGS') or ''),
     ]
     print(f'DEBUGFREEZE: {cmd=}')
-    ensure_opt(cmd, 'cache-file', os.path.join(outdir, 'python-config.cache'))
+    ensure_opt(cmd, 'cache-file', os.path.join(srcdir, 'python-config.cache'))
     prefix = os.path.join(outdir, 'python-installation')
     ensure_opt(cmd, 'prefix', prefix)
     _run_quiet(cmd, builddir)
