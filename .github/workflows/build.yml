@@ -52,16 +52,16 @@ jobs:
       run: brew install pkg-config openssl@3.0 xz gdbm tcl-tk
     - name: Upgrade OpenSSL to the most recent version
       run: brew upgrade -f openssl@3.0
-    - name: Configure CPython
-      run: |
-        GDBM_CFLAGS="-I$(brew --prefix gdbm)/include" \
-        GDBM_LIBS="-L$(brew --prefix gdbm)/lib -lgdbm" \
-        ./configure \
-          --config-cache \
-          --with-pydebug \
-          --prefix=/opt/python-dev \
-          --with-openssl="$(brew --prefix openssl@3.0)"
-    - name: Build CPython
-      run: make -j4
-    - name: Display build info
-      run: make pythoninfo
+    #- name: Configure CPython
+    #  run: |
+    #    GDBM_CFLAGS="-I$(brew --prefix gdbm)/include" \
+    #    GDBM_LIBS="-L$(brew --prefix gdbm)/lib -lgdbm" \
+    #    ./configure \
+    #      --config-cache \
+    #      --with-pydebug \
+    #      --prefix=/opt/python-dev \
+    #      --with-openssl="$(brew --prefix openssl@3.0)"
+    #- name: Build CPython
+    #  run: make -j4
+    #- name: Display build info
+    #  run: make pythoninfo
