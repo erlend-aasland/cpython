@@ -50,6 +50,8 @@ jobs:
         key: ${{ github.job }}-${{ runner.os }}-${{ needs.check_source.outputs.config_hash }}
     - name: Clean Homebrew OpenSSL cache
       run: brew cleanup --prune=all openssl@3.0
+    - name: Force fetch Homebrew OpenSSL formulae
+      run: brew fetch -f openssl@3.0
     - name: Install Homebrew dependencies
       run: brew install pkg-config openssl@3.0 xz gdbm tcl-tk
     #- name: Configure CPython
