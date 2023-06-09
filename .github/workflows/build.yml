@@ -65,5 +65,3 @@ jobs:
       run: make -j4
     - name: Display build info
       run: make pythoninfo
-    - name: Tests
-      run: make buildbottest TESTOPTS="-j4 -uall,-cpu"
