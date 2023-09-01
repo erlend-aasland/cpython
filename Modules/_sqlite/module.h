@@ -30,6 +30,8 @@
 #define PYSQLITE_VERSION "2.6.0"
 #define MODULE_NAME "sqlite3"
 
+#define HAVE_SQLITE_LOGGER
+
 typedef struct {
     PyObject *DataError;
     PyObject *DatabaseError;
@@ -70,6 +72,10 @@ typedef struct {
     PyObject *str_step;
     PyObject *str_upper;
     PyObject *str_value;
+
+#ifdef HAVE_SQLITE_LOGGER
+    PyObject *logger;
+#endif
 } pysqlite_state;
 
 extern pysqlite_state pysqlite_global_state;

@@ -140,6 +140,18 @@ exit:
     return return_value;
 }
 
+#if defined(HAVE_SQLITE_LOGGER)
+
+PyDoc_STRVAR(register_logger__doc__,
+"register_logger($module, callable, /)\n"
+"--\n"
+"\n");
+
+#define REGISTER_LOGGER_METHODDEF    \
+    {"register_logger", (PyCFunction)register_logger, METH_O, register_logger__doc__},
+
+#endif /* defined(HAVE_SQLITE_LOGGER) */
+
 PyDoc_STRVAR(pysqlite_enable_callback_trace__doc__,
 "enable_callback_tracebacks($module, enable, /)\n"
 "--\n"
@@ -207,4 +219,8 @@ skip_optional:
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=a14893a7c2eead5e input=a9049054013a1b77]*/
+
+#ifndef REGISTER_LOGGER_METHODDEF
+    #define REGISTER_LOGGER_METHODDEF
+#endif /* !defined(REGISTER_LOGGER_METHODDEF) */
+/*[clinic end generated code: output=0d9f23c12d7b1c8c input=a9049054013a1b77]*/

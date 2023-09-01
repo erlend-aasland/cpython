@@ -180,6 +180,32 @@ error:
     return retval;
 }
 
+#ifdef HAVE_SQLITE_LOGGER
+/*[clinic input]
+_sqlite3.register_logger as register_logger
+    callable as logger: object
+    /
+[clinic start generated code]*/
+
+static PyObject *
+register_logger(PyObject *module, PyObject *logger)
+/*[clinic end generated code: output=0384823fe1c13abe input=651cd42a675bcbfa]*/
+{
+    pysqlite_state *state = pysqlite_get_state(module);
+    if (Py_IsNone(logger)) {
+        Py_CLEAR(state->logger);
+        Py_RETURN_NONE;
+    }
+    if (PyCallable_Check(logger)) {
+        Py_XSETREF(state->logger, Py_NewRef(logger));
+        Py_RETURN_NONE;
+    }
+    PyErr_SetString(PyExc_TypeError,
+                    "'logger' must be a callable or None");
+    return NULL;
+}
+#endif
+
 /*[clinic input]
 _sqlite3.enable_callback_tracebacks as pysqlite_enable_callback_trace
 
@@ -248,8 +274,50 @@ static PyMethodDef module_methods[] = {
     PYSQLITE_ENABLE_CALLBACK_TRACE_METHODDEF
     PYSQLITE_REGISTER_ADAPTER_METHODDEF
     PYSQLITE_REGISTER_CONVERTER_METHODDEF
+    REGISTER_LOGGER_METHODDEF
     {NULL, NULL}
 };
+
+#ifdef HAVE_SQLITE_LOGGER
+// This callback must not invoke any SQLite interface.
+static void
+log_callback(void *ctx, int errcode, const char *msg)
+{
+    assert(ctx != NULL);
+    PyObject *logger = *((PyObject **)ctx);
+    if (logger == NULL) {
+        return;
+    }
+
+    PyGILState_STATE tstate = PyGILState_Ensure();
+    PyObject *exc = PyErr_GetRaisedException();
+    PyObject *err_obj = PyLong_FromLong(errcode);
+    if (err_obj == NULL) {
+        PyErr_WriteUnraisable(logger);
+        goto exit;
+    }
+    PyObject *msg_obj = PyUnicode_FromString(msg);
+    if (msg_obj == NULL) {
+        PyErr_WriteUnraisable(logger);
+        goto exit;
+    }
+
+    PyObject *args[] = {NULL, err_obj, msg_obj};
+    size_t nargsf = 2 | PY_VECTORCALL_ARGUMENTS_OFFSET;
+    PyObject *res = PyObject_Vectorcall(logger, args+1, nargsf, NULL);
+    Py_DECREF(err_obj);
+    Py_DECREF(msg_obj);
+    if (res == NULL) {
+        PyErr_WriteUnraisable(logger);
+        goto exit;
+    }
+    Py_DECREF(res);
+
+exit:
+    PyErr_SetRaisedException(exc);
+    PyGILState_Release(tstate);
+}
+#endif
 
 /* SQLite C API result codes. See also:
  * - https://www.sqlite.org/c3ref/c_abort_rollback.html
@@ -570,6 +638,10 @@ module_traverse(PyObject *module, visitproc visit, void *arg)
     Py_VISIT(state->lru_cache);
     Py_VISIT(state->psyco_adapters);
 
+#ifdef HAVE_SQLITE_LOGGER
+    Py_VISIT(state->logger);
+#endif
+
     return 0;
 }
 
@@ -613,6 +685,11 @@ module_clear(PyObject *module)
     Py_CLEAR(state->str_upper);
     Py_CLEAR(state->str_value);
 
+#ifdef HAVE_SQLITE_LOGGER
+    (void)sqlite3_config(SQLITE_CONFIG_LOG, NULL, NULL);
+    Py_CLEAR(state->logger);
+#endif
+
     return 0;
 }
 
@@ -655,7 +732,20 @@ module_exec(PyObject *module)
         return -1;
     }
 
-    int rc = sqlite3_initialize();
+    int rc;
+    pysqlite_state *state = pysqlite_get_state(module);
+
+#ifdef HAVE_SQLITE_LOGGER
+    state->logger = NULL;
+    rc = sqlite3_config(SQLITE_CONFIG_LOG, log_callback, &state->logger);
+    if (rc != SQLITE_OK) {
+        PyErr_SetString(PyExc_ImportError,
+                        MODULE_NAME ": Unable to set logger");
+        return -1;
+    }
+#endif
+
+    rc = sqlite3_initialize();
     if (rc != SQLITE_OK) {
         PyErr_SetString(PyExc_ImportError, sqlite3_errstr(rc));
         return -1;
@@ -671,7 +761,6 @@ module_exec(PyObject *module)
         goto error;
     }
 
-    pysqlite_state *state = pysqlite_get_state(module);
     ADD_TYPE(module, state->BlobType);
     ADD_TYPE(module, state->ConnectionType);
     ADD_TYPE(module, state->CursorType);
