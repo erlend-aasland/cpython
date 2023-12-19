@@ -1769,6 +1769,18 @@ class CLanguage(Language):
             "cpp_endif" : cpp_endif,
             "methoddef_ifndef" : methoddef_ifndef,
         }
+        if f.alias:
+            # Duplicate the PyMethodDef define, and replace the
+            # 'methoddef_name' field with 'methoddef_alias'. During generation,
+            # 'methoddef_alias' will be swapped with f.alias (from @alias).
+            alias_def = methoddef_define
+            _, cname = f.alias
+            if cname:
+                alias_def = alias_def.replace("methoddef_name",
+                                              "methoddef_alias")
+            alias_def = alias_def.replace("{name}", "{alias}")
+            d["methoddef_define"] += "\n"
+            d["methoddef_define"] += alias_def
 
         # make sure we didn't forget to assign something,
         # and wrap each non-empty value in \n's
@@ -1982,8 +1994,16 @@ class CLanguage(Language):
                 data.impl_parameters.append("PyObject *value")
                 data.impl_arguments.append("value")
         else:
-            template_dict['methoddef_name'] = f.c_basename.upper() + "_METHODDEF"
+            def methoddef_name(name: str) -> str:
+                return name.upper() + "_METHODDEF"
+
+            template_dict['methoddef_name'] = methoddef_name(f.c_basename)
             template_dict['c_basename'] = f.c_basename
+            if f.alias:
+                alias, cname = f.alias
+                template_dict['alias'] = alias
+                if cname:
+                    template_dict['methoddef_alias'] = methoddef_name(cname)
 
         template_dict['docstring'] = self.docstring_for_c_string(f)
 
@@ -3046,6 +3066,7 @@ class Function:
     docstring_only: bool = False
     critical_section: bool = False
     target_critical_section: list[str] = dc.field(default_factory=list)
+    alias: tuple[str, str | None] | None = None
 
     def __post_init__(self) -> None:
         self.parent = self.cls or self.module
@@ -5205,6 +5226,7 @@ class DSLParser:
     critical_section: bool
     target_critical_section: list[str]
     from_version_re = re.compile(r'([*/]) +\[from +(.+)\]')
+    alias: tuple[str, str | None] | None = None
 
     def __init__(self, clinic: Clinic) -> None:
         self.clinic = clinic
@@ -5240,6 +5262,7 @@ class DSLParser:
         self.preserve_output = False
         self.critical_section = False
         self.target_critical_section = []
+        self.alias = None
 
     def directive_version(self, required: str) -> None:
         global version
@@ -5406,6 +5429,18 @@ class DSLParser:
         if self.forced_text_signature:
             fail("Called @text_signature twice!")
         self.forced_text_signature = text_signature
+
+    def at_alias(self, alias: str, as_: str = "", cname: str = "") -> None:
+        if self.alias:
+            fail("Called @alias twice!")
+        if as_:
+            if as_ != "as":
+                fail("@alias: expected 'as' or no further arguments")
+            if not cname:
+                fail("@alias: 'as' must be followed by a name")
+            self.alias = alias, cname
+        else:
+            self.alias = alias, None
 
     def parse(self, block: Block) -> None:
         self.reset()
@@ -5628,7 +5663,8 @@ class DSLParser:
         self.function = Function(name=function_name, full_name=full_name, module=module, cls=cls, c_basename=c_basename,
                                  return_converter=return_converter, kind=self.kind, coexist=self.coexist,
                                  critical_section=self.critical_section,
-                                 target_critical_section=self.target_critical_section)
+                                 target_critical_section=self.target_critical_section,
+                                 alias=self.alias)
         self.block.signatures.append(self.function)
 
         # insert a self converter automatically
