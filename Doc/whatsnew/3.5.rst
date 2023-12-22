@@ -921,7 +921,7 @@ and improves their substitutability for lists.
 Docstrings produced by :func:`~collections.namedtuple` can now be updated::
 
     Point = namedtuple('Point', ['x', 'y'])
-    Point.__doc__ += ': Cartesian coodinate'
+    Point.__doc__ += ': Cartesian coordinate'
     Point.x.__doc__ = 'abscissa'
     Point.y.__doc__ = 'ordinate'
 
@@ -1947,7 +1947,8 @@ traceback
 ---------
 
 New :func:`~traceback.walk_stack` and :func:`~traceback.walk_tb`
-functions to conveniently traverse frame and traceback objects.
+functions to conveniently traverse frame and
+:ref:`traceback objects <traceback-objects>`.
 (Contributed by Robert Collins in :issue:`17911`.)
 
 New lightweight classes: :class:`~traceback.TracebackException`,

@@ -61,8 +61,6 @@ from typing import (
 #         and keyword-only
 #
 
-version = '1'
-
 NO_VARARG = "PY_SSIZE_T_MAX"
 CLINIC_PREFIX = "__clinic_"
 CLINIC_PREFIXED_ARGS = {
@@ -107,41 +105,7 @@ NULL = Null()
 
 sig_end_marker = '--'
 
-Appender = Callable[[str], None]
-Outputter = Callable[[], str]
 TemplateDict = dict[str, str]
-
-class _TextAccumulator(NamedTuple):
-    text: list[str]
-    append: Appender
-    output: Outputter
-
-def _text_accumulator() -> _TextAccumulator:
-    text: list[str] = []
-    def output() -> str:
-        s = ''.join(text)
-        text.clear()
-        return s
-    return _TextAccumulator(text, text.append, output)
-
-
-class TextAccumulator(NamedTuple):
-    append: Appender
-    output: Outputter
-
-def text_accumulator() -> TextAccumulator:
-    """
-    Creates a simple text accumulator / joiner.
-
-    Returns a pair of callables:
-        append, output
-    "append" appends a string to the accumulator.
-    "output" returns the contents of the accumulator
-       joined together (''.join(accumulator)) and
-       empties the accumulator.
-    """
-    text, append, output = _text_accumulator()
-    return TextAccumulator(append, output)
 
 
 @dc.dataclass
@@ -266,14 +230,6 @@ def ensure_legal_c_identifier(s: str) -> str:
         return s + "_value"
     return s
 
-def rstrip_lines(s: str) -> str:
-    text, add, output = _text_accumulator()
-    for line in s.split('\n'):
-        add(line.rstrip())
-        add('\n')
-    text.pop()
-    return output()
-
 def format_escape(s: str) -> str:
     # double up curly-braces, this string will be used
     # as part of a format_map() template later
@@ -296,18 +252,16 @@ def linear_format(s: str, **kwargs: str) -> str:
           * A newline will be added to the end.
     """
 
-    add, output = text_accumulator()
+    lines = []
     for line in s.split('\n'):
         indent, curly, trailing = line.partition('{')
         if not curly:
-            add(line)
-            add('\n')
+            lines.extend([line, "\n"])
             continue
 
         name, curly, trailing = trailing.partition('}')
         if not curly or name not in kwargs:
-            add(line)
-            add('\n')
+            lines.extend([line, "\n"])
             continue
 
         if trailing:
@@ -321,51 +275,32 @@ def linear_format(s: str, **kwargs: str) -> str:
         if not value:
             continue
 
-        value = textwrap.indent(rstrip_lines(value), indent)
-        add(value)
-        add('\n')
+        stripped = [line.rstrip() for line in value.split("\n")]
+        value = textwrap.indent("\n".join(stripped), indent)
+        lines.extend([value, "\n"])
 
-    return output()[:-1]
+    return "".join(lines[:-1])
 
-def indent_all_lines(s: str, prefix: str) -> str:
+def _add_prefix_and_suffix(s: str, prefix: str = "", suffix: str = "") -> str:
     """
-    Returns 's', with 'prefix' prepended to all lines.
+    Return 's', with 'prefix' prepended and 'suffix' appended to all lines.
 
-    If the last line is empty, prefix is not prepended
-    to it.  (If s is blank, returns s unchanged.)
+    If the last line is empty, it remains unchanged.
+    If s is blank, returns s unchanged.
 
     (textwrap.indent only adds to non-blank lines.)
     """
-    split = s.split('\n')
-    last = split.pop()
-    final = []
-    for line in split:
-        final.append(prefix)
-        final.append(line)
-        final.append('\n')
+    *split, last = s.split("\n")
+    lines = [prefix + line + suffix + "\n" for line in split]
     if last:
-        final.append(prefix)
-        final.append(last)
-    return ''.join(final)
+        lines.append(prefix + last + suffix)
+    return "".join(lines)
+
+def indent_all_lines(s: str, prefix: str) -> str:
+    return _add_prefix_and_suffix(s, prefix=prefix)
 
 def suffix_all_lines(s: str, suffix: str) -> str:
-    """
-    Returns 's', with 'suffix' appended to all lines.
-
-    If the last line is empty, suffix is not appended
-    to it.  (If s is blank, returns s unchanged.)
-    """
-    split = s.split('\n')
-    last = split.pop()
-    final = []
-    for line in split:
-        final.append(line)
-        final.append(suffix)
-        final.append('\n')
-    if last:
-        final.append(last)
-        final.append(suffix)
-    return ''.join(final)
+    return _add_prefix_and_suffix(s, suffix=suffix)
 
 
 def pprint_words(items: list[str]) -> str:
@@ -373,49 +308,6 @@ def pprint_words(items: list[str]) -> str:
         return " and ".join(items)
     else:
         return ", ".join(items[:-1]) + " and " + items[-1]
-
-
-def version_splitter(s: str) -> tuple[int, ...]:
-    """Splits a version string into a tuple of integers.
-
-    The following ASCII characters are allowed, and employ
-    the following conversions:
-        a -> -3
-        b -> -2
-        c -> -1
-    (This permits Python-style version strings such as "1.4b3".)
-    """
-    version: list[int] = []
-    accumulator: list[str] = []
-    def flush() -> None:
-        if not accumulator:
-            fail(f'Unsupported version string: {s!r}')
-        version.append(int(''.join(accumulator)))
-        accumulator.clear()
-
-    for c in s:
-        if c.isdigit():
-            accumulator.append(c)
-        elif c == '.':
-            flush()
-        elif c in 'abc':
-            flush()
-            version.append('abc'.index(c) - 3)
-        else:
-            fail(f'Illegal character {c!r} in version string {s!r}')
-    flush()
-    return tuple(version)
-
-def version_comparitor(version1: str, version2: str) -> Literal[-1, 0, 1]:
-    iterator = itertools.zip_longest(
-        version_splitter(version1), version_splitter(version2), fillvalue=0
-    )
-    for a, b in iterator:
-        if a < b:
-            return -1
-        if a > b:
-            return 1
-    return 0
 
 
 class CRenderData:
@@ -469,6 +361,10 @@ class CRenderData:
 
         # The C statements required to clean up after the impl call.
         self.cleanup: list[str] = []
+
+        # The C statements to generate critical sections (per-object locking).
+        self.lock: list[str] = []
+        self.unlock: list[str] = []
 
 
 class FormatCounterFormatter(string.Formatter):
@@ -856,6 +752,14 @@ class CLanguage(Language):
         static PyObject *
         {c_basename}({self_type}{self_name}, PyObject *Py_UNUSED(ignored))
     """)
+    PARSER_PROTOTYPE_GETTER: Final[str] = normalize_snippet("""
+        static PyObject *
+        {c_basename}({self_type}{self_name}, void *Py_UNUSED(context))
+    """)
+    PARSER_PROTOTYPE_SETTER: Final[str] = normalize_snippet("""
+        static int
+        {c_basename}({self_type}{self_name}, PyObject *value, void *Py_UNUSED(context))
+    """)
     METH_O_PROTOTYPE: Final[str] = normalize_snippet("""
         static PyObject *
         {c_basename}({impl_parameters})
@@ -867,6 +771,11 @@ class CLanguage(Language):
         PyDoc_STRVAR({c_basename}__doc__,
         {docstring});
     """)
+    GETSET_DOCSTRING_PROTOTYPE_STRVAR: Final[str] = normalize_snippet("""
+        PyDoc_STRVAR({getset_basename}__doc__,
+        {docstring});
+        #define {getset_basename}_HAS_DOCSTR
+    """)
     IMPL_DEFINITION_PROTOTYPE: Final[str] = normalize_snippet("""
         static {impl_return_type}
         {c_basename}_impl({impl_parameters})
@@ -874,6 +783,32 @@ class CLanguage(Language):
     METHODDEF_PROTOTYPE_DEFINE: Final[str] = normalize_snippet(r"""
         #define {methoddef_name}    \
             {{"{name}", {methoddef_cast}{c_basename}{methoddef_cast_end}, {methoddef_flags}, {c_basename}__doc__}},
+    """)
+    GETTERDEF_PROTOTYPE_DEFINE: Final[str] = normalize_snippet(r"""
+        #if defined({getset_basename}_HAS_DOCSTR)
+        #  define {getset_basename}_DOCSTR {getset_basename}__doc__
+        #else
+        #  define {getset_basename}_DOCSTR NULL
+        #endif
+        #if defined({getset_name}_GETSETDEF)
+        #  undef {getset_name}_GETSETDEF
+        #  define {getset_name}_GETSETDEF {{"{name}", (getter){getset_basename}_get, (setter){getset_basename}_set, {getset_basename}_DOCSTR}},
+        #else
+        #  define {getset_name}_GETSETDEF {{"{name}", (getter){getset_basename}_get, NULL, {getset_basename}_DOCSTR}},
+        #endif
+    """)
+    SETTERDEF_PROTOTYPE_DEFINE: Final[str] = normalize_snippet(r"""
+        #if defined({getset_name}_HAS_DOCSTR)
+        #  define {getset_basename}_DOCSTR {getset_basename}__doc__
+        #else
+        #  define {getset_basename}_DOCSTR NULL
+        #endif
+        #if defined({getset_name}_GETSETDEF)
+        #  undef {getset_name}_GETSETDEF
+        #  define {getset_name}_GETSETDEF {{"{name}", (getter){getset_basename}_get, (setter){getset_basename}_set, {getset_basename}_DOCSTR}},
+        #else
+        #  define {getset_name}_GETSETDEF {{"{name}", NULL, (setter){getset_basename}_set, NULL}},
+        #endif
     """)
     METHODDEF_PROTOTYPE_IFNDEF: Final[str] = normalize_snippet("""
         #ifndef {methoddef_name}
@@ -938,7 +873,6 @@ class CLanguage(Language):
 
         # Format the preprocessor warning and error messages.
         assert isinstance(self.cpp.filename, str)
-        source = os.path.basename(self.cpp.filename)
         message = f"Update the clinic input of {func.full_name!r}."
         code = self.COMPILER_DEPRECATION_WARNING_PROTOTYPE.format(
             major=minversion[0],
@@ -1085,21 +1019,21 @@ class CLanguage(Language):
             self,
             f: Function
     ) -> str:
-        text, add, output = _text_accumulator()
+        lines = []
         # turn docstring into a properly quoted C string
         for line in f.docstring.split('\n'):
-            add('"')
-            add(quoted_for_c_string(line))
-            add('\\n"\n')
+            lines.append('"')
+            lines.append(quoted_for_c_string(line))
+            lines.append('\\n"\n')
 
-        if text[-2] == sig_end_marker:
+        if lines[-2] == sig_end_marker:
             # If we only have a signature, add the blank line that the
             # __text_signature__ getter expects to be there.
-            add('"\\n"')
+            lines.append('"\\n"')
         else:
-            text.pop()
-            add('"')
-        return ''.join(text)
+            lines.pop()
+            lines.append('"')
+        return ''.join(lines)
 
     def output_templates(
             self,
@@ -1122,9 +1056,11 @@ class CLanguage(Language):
             if include:
                 clinic.add_include(include.filename, include.reason,
                                    condition=include.condition)
-
+        if f.critical_section:
+            clinic.add_include('pycore_critical_section.h', 'Py_BEGIN_CRITICAL_SECTION()')
         has_option_groups = parameters and (parameters[0].group or parameters[-1].group)
-        default_return_converter = f.return_converter.type == 'PyObject *'
+        simple_return = (f.return_converter.type == 'PyObject *'
+                         and not f.critical_section)
         new_or_init = f.kind.new_or_init
 
         vararg: int | str = NO_VARARG
@@ -1158,7 +1094,23 @@ class CLanguage(Language):
         return_value_declaration = "PyObject *return_value = NULL;"
         templ_data.methoddef_define = self.METHODDEF_PROTOTYPE_DEFINE
         if new_or_init and not f.docstring:
-            templ_data.docstring_prototype = templ_data.docstring_definition = ''
+            templ_data.docstring_prototype = ''
+            templ_data.docstring_definition = ''
+        elif f.kind is GETTER:
+            templ_data.methoddef_define = self.GETTERDEF_PROTOTYPE_DEFINE
+            if f.docstring:
+                templ_data.docstring_prototype = ''
+                templ_data.docstring_definition = self.GETSET_DOCSTRING_PROTOTYPE_STRVAR
+            else:
+                templ_data.docstring_prototype = ''
+                templ_data.docstring_definition = ''
+        elif f.kind is SETTER:
+            if f.docstring:
+                fail("docstrings are only supported for @getter, not @setter")
+            return_value_declaration = "int {return_value};"
+            templ_data.methoddef_define = self.SETTERDEF_PROTOTYPE_DEFINE
+            templ_data.docstring_prototype = ''
+            templ_data.docstring_definition = ''
         else:
             templ_data.docstring_prototype = self.DOCSTRING_PROTOTYPE_VAR
             templ_data.docstring_definition = self.DOCSTRING_PROTOTYPE_STRVAR
@@ -1173,8 +1125,8 @@ class CLanguage(Language):
                 declarations: str = ''
         ) -> str:
             nonlocal parser_body_fields
-            add, output = text_accumulator()
-            add(prototype)
+            lines = []
+            lines.append(prototype)
             parser_body_fields = fields
 
             preamble = normalize_snippet("""
@@ -1186,7 +1138,9 @@ class CLanguage(Language):
             """) + "\n"
             finale = normalize_snippet("""
                     {modifications}
+                    {lock}
                     {return_value} = {c_basename}_impl({impl_arguments});
+                    {unlock}
                     {return_conversion}
                     {post_parsing}
 
@@ -1196,13 +1150,12 @@ class CLanguage(Language):
                 }}
             """)
             for field in preamble, *fields, finale:
-                add('\n')
-                add(field)
-            return linear_format(output(), parser_declarations=declarations)
+                lines.append(field)
+            return linear_format("\n".join(lines), parser_declarations=declarations)
 
         fastcall = not new_or_init
         limited_capi = clinic.limited_capi
-        if limited_capi and (requires_defining_class or pseudo_args or
+        if limited_capi and (pseudo_args or
                 (any(p.is_optional() for p in parameters) and
                  any(p.is_keyword_only() and not p.is_optional() for p in parameters)) or
                 any(c.broken_limited_capi for c in converters)):
@@ -1210,9 +1163,20 @@ class CLanguage(Language):
             limited_capi = False
 
         parsearg: str | None
+        if f.kind in {GETTER, SETTER} and parameters:
+            fail(f"@{f.kind.name.lower()} method cannot define parameters")
+
         if not parameters:
             parser_code: list[str] | None
-            if not requires_defining_class:
+            if f.kind is GETTER:
+                flags = "" # This should end up unused
+                templ_data.parser_prototype = self.PARSER_PROTOTYPE_GETTER
+                parser_code = []
+            elif f.kind is SETTER:
+                flags = ""
+                templ_data.parser_prototype = self.PARSER_PROTOTYPE_SETTER
+                parser_code = []
+            elif not requires_defining_class:
                 # no parameters, METH_NOARGS
                 flags = "METH_NOARGS"
                 templ_data.parser_prototype = self.PARSER_PROTOTYPE_NOARGS
@@ -1222,7 +1186,7 @@ class CLanguage(Language):
 
                 flags = "METH_METHOD|METH_FASTCALL|METH_KEYWORDS"
                 templ_data.parser_prototype = self.PARSER_PROTOTYPE_DEF_CLASS
-                return_error = ('return NULL;' if default_return_converter
+                return_error = ('return NULL;' if simple_return
                                 else 'goto exit;')
                 parser_code = [normalize_snippet("""
                     if (nargs) {{
@@ -1231,7 +1195,7 @@ class CLanguage(Language):
                     }}
                     """ % return_error, indent=4)]
 
-            if default_return_converter:
+            if simple_return:
                 templ_data.parser_definition = '\n'.join([
                     templ_data.parser_prototype,
                     '{{',
@@ -1239,7 +1203,8 @@ class CLanguage(Language):
                     '    return {c_basename}_impl({impl_arguments});',
                     '}}'])
             else:
-                templ_data.parser_definition = parser_body(templ_data.parser_prototype, *parser_code)
+                templ_data.parser_definition = parser_body(templ_data.parser_prototype,
+                                                           *parser_code)
 
         elif meth_o:
             flags = "METH_O"
@@ -1248,7 +1213,7 @@ class CLanguage(Language):
                 converters[0].format_unit == 'O'):
                 meth_o_prototype = self.METH_O_PROTOTYPE
 
-                if default_return_converter:
+                if simple_return:
                     # maps perfectly to METH_O, doesn't need a return converter.
                     # so we skip making a parse function
                     # and call directly into the impl function.
@@ -1352,6 +1317,8 @@ class CLanguage(Language):
                             """,
                         indent=4))
             else:
+                clinic.add_include('pycore_modsupport.h',
+                                   '_PyArg_CheckPositional()')
                 parser_code = [normalize_snippet(f"""
                     if (!_PyArg_CheckPositional("{{name}}", {nargs}, {min_pos}, {max_args})) {{{{
                         goto exit;
@@ -1409,6 +1376,8 @@ class CLanguage(Language):
                 if limited_capi:
                     fastcall = False
                 if fastcall:
+                    clinic.add_include('pycore_modsupport.h',
+                                       '_PyArg_ParseStack()')
                     parser_code = [normalize_snippet("""
                         if (!_PyArg_ParseStack(args, nargs, "{format_units}:{name}",
                             {parse_arguments})) {{
@@ -1437,59 +1406,64 @@ class CLanguage(Language):
                     deprecated_keywords[i] = p
 
             has_optional_kw = (max(pos_only, min_pos) + min_kw_only < len(converters) - int(vararg != NO_VARARG))
-            if vararg == NO_VARARG:
-                args_declaration = "_PyArg_UnpackKeywords", "%s, %s, %s" % (
-                    min_pos,
-                    max_pos,
-                    min_kw_only
-                )
-                nargs = "nargs"
-            else:
-                args_declaration = "_PyArg_UnpackKeywordsWithVararg", "%s, %s, %s, %s" % (
-                    min_pos,
-                    max_pos,
-                    min_kw_only,
-                    vararg
-                )
-                nargs = f"Py_MIN(nargs, {max_pos})" if max_pos else "0"
 
             if limited_capi:
                 parser_code = None
                 fastcall = False
-
-            elif fastcall:
-                flags = "METH_FASTCALL|METH_KEYWORDS"
-                templ_data.parser_prototype = self.PARSER_PROTOTYPE_FASTCALL_KEYWORDS
-                argname_fmt = 'args[%d]'
-                declarations = declare_parser(f, clinic=clinic,
-                                              limited_capi=clinic.limited_capi)
-                declarations += "\nPyObject *argsbuf[%s];" % len(converters)
-                if has_optional_kw:
-                    declarations += "\nPy_ssize_t noptargs = %s + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - %d;" % (nargs, min_pos + min_kw_only)
-                parser_code = [normalize_snippet("""
-                    args = %s(args, nargs, NULL, kwnames, &_parser, %s, argsbuf);
-                    if (!args) {{
-                        goto exit;
-                    }}
-                    """ % args_declaration, indent=4)]
             else:
-                # positional-or-keyword arguments
-                flags = "METH_VARARGS|METH_KEYWORDS"
-                templ_data.parser_prototype = self.PARSER_PROTOTYPE_KEYWORD
-                argname_fmt = 'fastargs[%d]'
-                declarations = declare_parser(f, clinic=clinic,
-                                              limited_capi=clinic.limited_capi)
-                declarations += "\nPyObject *argsbuf[%s];" % len(converters)
-                declarations += "\nPyObject * const *fastargs;"
-                declarations += "\nPy_ssize_t nargs = PyTuple_GET_SIZE(args);"
-                if has_optional_kw:
-                    declarations += "\nPy_ssize_t noptargs = %s + (kwargs ? PyDict_GET_SIZE(kwargs) : 0) - %d;" % (nargs, min_pos + min_kw_only)
-                parser_code = [normalize_snippet("""
-                    fastargs = %s(_PyTuple_CAST(args)->ob_item, nargs, kwargs, NULL, &_parser, %s, argsbuf);
-                    if (!fastargs) {{
-                        goto exit;
-                    }}
-                    """ % args_declaration, indent=4)]
+                if vararg == NO_VARARG:
+                    clinic.add_include('pycore_modsupport.h',
+                                       '_PyArg_UnpackKeywords()')
+                    args_declaration = "_PyArg_UnpackKeywords", "%s, %s, %s" % (
+                        min_pos,
+                        max_pos,
+                        min_kw_only
+                    )
+                    nargs = "nargs"
+                else:
+                    clinic.add_include('pycore_modsupport.h',
+                                       '_PyArg_UnpackKeywordsWithVararg()')
+                    args_declaration = "_PyArg_UnpackKeywordsWithVararg", "%s, %s, %s, %s" % (
+                        min_pos,
+                        max_pos,
+                        min_kw_only,
+                        vararg
+                    )
+                    nargs = f"Py_MIN(nargs, {max_pos})" if max_pos else "0"
+
+                if fastcall:
+                    flags = "METH_FASTCALL|METH_KEYWORDS"
+                    templ_data.parser_prototype = self.PARSER_PROTOTYPE_FASTCALL_KEYWORDS
+                    argname_fmt = 'args[%d]'
+                    declarations = declare_parser(f, clinic=clinic,
+                                                  limited_capi=clinic.limited_capi)
+                    declarations += "\nPyObject *argsbuf[%s];" % len(converters)
+                    if has_optional_kw:
+                        declarations += "\nPy_ssize_t noptargs = %s + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - %d;" % (nargs, min_pos + min_kw_only)
+                    parser_code = [normalize_snippet("""
+                        args = %s(args, nargs, NULL, kwnames, &_parser, %s, argsbuf);
+                        if (!args) {{
+                            goto exit;
+                        }}
+                        """ % args_declaration, indent=4)]
+                else:
+                    # positional-or-keyword arguments
+                    flags = "METH_VARARGS|METH_KEYWORDS"
+                    templ_data.parser_prototype = self.PARSER_PROTOTYPE_KEYWORD
+                    argname_fmt = 'fastargs[%d]'
+                    declarations = declare_parser(f, clinic=clinic,
+                                                  limited_capi=clinic.limited_capi)
+                    declarations += "\nPyObject *argsbuf[%s];" % len(converters)
+                    declarations += "\nPyObject * const *fastargs;"
+                    declarations += "\nPy_ssize_t nargs = PyTuple_GET_SIZE(args);"
+                    if has_optional_kw:
+                        declarations += "\nPy_ssize_t noptargs = %s + (kwargs ? PyDict_GET_SIZE(kwargs) : 0) - %d;" % (nargs, min_pos + min_kw_only)
+                    parser_code = [normalize_snippet("""
+                        fastargs = %s(_PyTuple_CAST(args)->ob_item, nargs, kwargs, NULL, &_parser, %s, argsbuf);
+                        if (!fastargs) {{
+                            goto exit;
+                        }}
+                        """ % args_declaration, indent=4)]
 
             if requires_defining_class:
                 flags = 'METH_METHOD|' + flags
@@ -1583,6 +1557,8 @@ class CLanguage(Language):
                         declarations += "\nPy_ssize_t nargs = PyTuple_Size(args);"
 
                 elif fastcall:
+                    clinic.add_include('pycore_modsupport.h',
+                                       '_PyArg_ParseStackAndKeywords()')
                     parser_code = [normalize_snippet("""
                         if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser{parse_arguments_comma}
                             {parse_arguments})) {{
@@ -1590,6 +1566,8 @@ class CLanguage(Language):
                         }}
                         """, indent=4)]
                 else:
+                    clinic.add_include('pycore_modsupport.h',
+                                       '_PyArg_ParseTupleAndKeywordsFast()')
                     parser_code = [normalize_snippet("""
                         if (!_PyArg_ParseTupleAndKeywordsFast(args, kwargs, &_parser,
                             {parse_arguments})) {{
@@ -1636,12 +1614,16 @@ class CLanguage(Language):
 
             if not parses_keywords:
                 declarations = '{base_type_ptr}'
+                clinic.add_include('pycore_modsupport.h',
+                                   '_PyArg_NoKeywords()')
                 fields.insert(0, normalize_snippet("""
                     if ({self_type_check}!_PyArg_NoKeywords("{name}", kwargs)) {{
                         goto exit;
                     }}
                     """, indent=4))
                 if not parses_positional:
+                    clinic.add_include('pycore_modsupport.h',
+                                       '_PyArg_NoPositional()')
                     fields.insert(0, normalize_snippet("""
                         if ({self_type_check}!_PyArg_NoPositional("{name}", args)) {{
                             goto exit;
@@ -1653,12 +1635,13 @@ class CLanguage(Language):
                                                        declarations=declarations)
 
 
+        methoddef_cast_end = ""
         if flags in ('METH_NOARGS', 'METH_O', 'METH_VARARGS'):
             methoddef_cast = "(PyCFunction)"
-            methoddef_cast_end = ""
+        elif f.kind is GETTER:
+            methoddef_cast = "" # This should end up unused
         elif limited_capi:
             methoddef_cast = "(PyCFunction)(void(*)(void))"
-            methoddef_cast_end = ""
         else:
             methoddef_cast = "_PyCFunction_CAST("
             methoddef_cast_end = ")"
@@ -1740,7 +1723,7 @@ class CLanguage(Language):
         # Clinic prefers groups on the left.  So in the above example,
         # five arguments would map to B+C, not C+D.
 
-        add, output = text_accumulator()
+        out = []
         parameters = list(f.parameters.values())
         if isinstance(parameters[0].converter, self_converter):
             del parameters[0]
@@ -1772,14 +1755,14 @@ class CLanguage(Language):
             nargs = 'PyTuple_Size(args)'
         else:
             nargs = 'PyTuple_GET_SIZE(args)'
-        add(f"switch ({nargs}) {{\n")
+        out.append(f"switch ({nargs}) {{\n")
         for subset in permute_optional_groups(left, required, right):
             count = len(subset)
             count_min = min(count_min, count)
             count_max = max(count_max, count)
 
             if count == 0:
-                add("""    case 0:
+                out.append("""    case 0:
         break;
 """)
                 continue
@@ -1811,14 +1794,15 @@ class CLanguage(Language):
 """
             s = linear_format(s, group_booleans=lines)
             s = s.format_map(d)
-            add(s)
+            out.append(s)
 
-        add("    default:\n")
+        out.append("    default:\n")
         s = '        PyErr_SetString(PyExc_TypeError, "{} requires {} to {} arguments");\n'
-        add(s.format(f.full_name, count_min, count_max))
-        add('        goto exit;\n')
-        add("}")
-        template_dict['option_group_parsing'] = format_escape(output())
+        out.append(s.format(f.full_name, count_min, count_max))
+        out.append('        goto exit;\n')
+        out.append("}")
+
+        template_dict['option_group_parsing'] = format_escape("".join(out))
 
     def render_function(
             self,
@@ -1828,7 +1812,6 @@ class CLanguage(Language):
         if f is None or clinic is None:
             return ""
 
-        add, output = text_accumulator()
         data = CRenderData()
 
         assert f.parameters, "We should always have a 'self' at this point!"
@@ -1841,10 +1824,23 @@ class CLanguage(Language):
         selfless = parameters[1:]
         assert isinstance(f_self.converter, self_converter), "No self parameter in " + repr(f.full_name) + "!"
 
+        if f.critical_section:
+            match len(f.target_critical_section):
+                case 0:
+                    lock = 'Py_BEGIN_CRITICAL_SECTION({self_name});'
+                    unlock = 'Py_END_CRITICAL_SECTION();'
+                case 1:
+                    lock = 'Py_BEGIN_CRITICAL_SECTION({target_critical_section});'
+                    unlock = 'Py_END_CRITICAL_SECTION();'
+                case _:
+                    lock = 'Py_BEGIN_CRITICAL_SECTION2({target_critical_section});'
+                    unlock = 'Py_END_CRITICAL_SECTION2();'
+            data.lock.append(lock)
+            data.unlock.append(unlock)
+
         last_group = 0
         first_optional = len(selfless)
         positional = selfless and selfless[-1].is_positional_only()
-        new_or_init = f.kind.new_or_init
         has_option_groups = False
 
         # offset i by -1 because first_optional needs to ignore self
@@ -1889,17 +1885,33 @@ class CLanguage(Language):
         full_name = f.full_name
         template_dict = {'full_name': full_name}
         template_dict['name'] = f.displayname
-        template_dict['c_basename'] = f.c_basename
-        template_dict['methoddef_name'] = f.c_basename.upper() + "_METHODDEF"
+        if f.kind in {GETTER, SETTER}:
+            template_dict['getset_name'] = f.c_basename.upper()
+            template_dict['getset_basename'] = f.c_basename
+            if f.kind is GETTER:
+                template_dict['c_basename'] = f.c_basename + "_get"
+            elif f.kind is SETTER:
+                template_dict['c_basename'] = f.c_basename + "_set"
+                # Implicitly add the setter value parameter.
+                data.impl_parameters.append("PyObject *value")
+                data.impl_arguments.append("value")
+        else:
+            template_dict['methoddef_name'] = f.c_basename.upper() + "_METHODDEF"
+            template_dict['c_basename'] = f.c_basename
 
         template_dict['docstring'] = self.docstring_for_c_string(f)
 
         template_dict['self_name'] = template_dict['self_type'] = template_dict['self_type_check'] = ''
+        template_dict['target_critical_section'] = ', '.join(f.target_critical_section)
         for converter in converters:
             converter.set_template_dict(template_dict)
 
         f.return_converter.render(f, data)
-        template_dict['impl_return_type'] = f.return_converter.type
+        if f.kind is SETTER:
+            # All setters return an int.
+            template_dict['impl_return_type'] = 'int'
+        else:
+            template_dict['impl_return_type'] = f.return_converter.type
 
         template_dict['declarations'] = format_escape("\n".join(data.declarations))
         template_dict['initializers'] = "\n\n".join(data.initializers)
@@ -1921,6 +1933,8 @@ class CLanguage(Language):
         template_dict['post_parsing'] = format_escape("".join(data.post_parsing).rstrip())
         template_dict['cleanup'] = format_escape("".join(data.cleanup))
         template_dict['return_value'] = data.return_value
+        template_dict['lock'] = "\n".join(data.lock)
+        template_dict['unlock'] = "\n".join(data.unlock)
 
         # used by unpack tuple code generator
         unpack_min = first_optional
@@ -1945,6 +1959,8 @@ class CLanguage(Language):
                 modifications=template_dict['modifications'],
                 post_parsing=template_dict['post_parsing'],
                 cleanup=template_dict['cleanup'],
+                lock=template_dict['lock'],
+                unlock=template_dict['unlock'],
                 )
 
             # Only generate the "exit:" label
@@ -2124,7 +2140,7 @@ class BlockParser:
         return line
 
     def parse_verbatim_block(self) -> Block:
-        add, output = text_accumulator()
+        lines = []
         self.block_start_line_number = self.line_number
 
         while self.input:
@@ -2133,12 +2149,12 @@ class BlockParser:
             if dsl_name:
                 self.dsl_name = dsl_name
                 break
-            add(line)
+            lines.append(line)
 
-        return Block(output())
+        return Block("".join(lines))
 
     def parse_clinic_block(self, dsl_name: str) -> Block:
-        input_add, input_output = text_accumulator()
+        in_lines = []
         self.block_start_line_number = self.line_number + 1
         stop_line = self.language.stop_line.format(dsl_name=dsl_name)
         body_prefix = self.language.body_prefix.format(dsl_name=dsl_name)
@@ -2166,7 +2182,7 @@ class BlockParser:
                 line = line.lstrip()
                 assert line.startswith(body_prefix)
                 line = line.removeprefix(body_prefix)
-            input_add(line)
+            in_lines.append(line)
 
         # consume output and checksum line, if present.
         if self.last_dsl_name == dsl_name:
@@ -2180,7 +2196,7 @@ class BlockParser:
         assert checksum_re is not None
 
         # scan forward for checksum line
-        output_add, output_output = text_accumulator()
+        out_lines = []
         arguments = None
         while self.input:
             line = self._line(lookahead=True)
@@ -2188,12 +2204,12 @@ class BlockParser:
             arguments = match.group(1) if match else None
             if arguments:
                 break
-            output_add(line)
+            out_lines.append(line)
             if self.is_start_line(line):
                 break
 
         output: str | None
-        output = output_output()
+        output = "".join(out_lines)
         if arguments:
             d = {}
             for field in shlex.split(arguments):
@@ -2221,7 +2237,7 @@ class BlockParser:
             self.input.extend(reversed(output_lines))
             output = None
 
-        return Block(input_output(), dsl_name, output=output)
+        return Block("".join(in_lines), dsl_name, output=output)
 
 
 @dc.dataclass(slots=True, frozen=True)
@@ -2341,26 +2357,26 @@ class BufferSeries:
 
     def __init__(self) -> None:
         self._start = 0
-        self._array: list[_TextAccumulator] = []
-        self._constructor = _text_accumulator
+        self._array: list[list[str]] = []
 
-    def __getitem__(self, i: int) -> _TextAccumulator:
+    def __getitem__(self, i: int) -> list[str]:
         i -= self._start
         if i < 0:
             self._start += i
-            prefix = [self._constructor() for x in range(-i)]
+            prefix: list[list[str]] = [[] for x in range(-i)]
             self._array = prefix + self._array
             i = 0
         while i >= len(self._array):
-            self._array.append(self._constructor())
+            self._array.append([])
         return self._array[i]
 
     def clear(self) -> None:
         for ta in self._array:
-            ta.text.clear()
+            ta.clear()
 
     def dump(self) -> str:
-        texts = [ta.output() for ta in self._array]
+        texts = ["".join(ta) for ta in self._array]
+        self.clear()
         return "".join(texts)
 
 
@@ -2423,7 +2439,7 @@ extensions['py'] = PythonLanguage
 
 def write_file(filename: str, new_contents: str) -> None:
     try:
-        with open(filename, 'r', encoding="utf-8") as fp:
+        with open(filename, encoding="utf-8") as fp:
             old_contents = fp.read()
 
         if old_contents == new_contents:
@@ -2546,7 +2562,7 @@ impl_definition block
             'impl_definition': d('block'),
         }
 
-        DestBufferType = dict[str, _TextAccumulator]
+        DestBufferType = dict[str, list[str]]
         DestBufferList = list[DestBufferType]
 
         self.destination_buffers_stack: DestBufferList = []
@@ -2618,7 +2634,7 @@ impl_definition block
             self,
             name: str,
             item: int = 0
-    ) -> _TextAccumulator:
+    ) -> list[str]:
         d = self.get_destination(name)
         return d.buffers[item]
 
@@ -2889,6 +2905,8 @@ class FunctionKind(enum.Enum):
     CLASS_METHOD    = enum.auto()
     METHOD_INIT     = enum.auto()
     METHOD_NEW      = enum.auto()
+    GETTER          = enum.auto()
+    SETTER          = enum.auto()
 
     @functools.cached_property
     def new_or_init(self) -> bool:
@@ -2904,6 +2922,8 @@ STATIC_METHOD: Final = FunctionKind.STATIC_METHOD
 CLASS_METHOD: Final = FunctionKind.CLASS_METHOD
 METHOD_INIT: Final = FunctionKind.METHOD_INIT
 METHOD_NEW: Final = FunctionKind.METHOD_NEW
+GETTER: Final = FunctionKind.GETTER
+SETTER: Final = FunctionKind.SETTER
 
 ParamDict = dict[str, "Parameter"]
 ReturnConverterType = Callable[..., "CReturnConverter"]
@@ -2938,6 +2958,8 @@ class Function:
     # functions with optional groups because we can't represent
     # those accurately with inspect.Signature in 3.4.
     docstring_only: bool = False
+    critical_section: bool = False
+    target_critical_section: list[str] = dc.field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.parent = self.cls or self.module
@@ -2988,7 +3010,8 @@ class Function:
             case FunctionKind.STATIC_METHOD:
                 flags.append('METH_STATIC')
             case _ as kind:
-                assert kind is FunctionKind.CALLABLE, f"unknown kind: {kind!r}"
+                acceptable_kinds = {FunctionKind.CALLABLE, FunctionKind.GETTER, FunctionKind.SETTER}
+                assert kind in acceptable_kinds, f"unknown kind: {kind!r}"
         if self.coexist:
             flags.append('METH_COEXIST')
         return '|'.join(flags)
@@ -3065,11 +3088,9 @@ class Parameter:
             return f'argument {i}'
 
     def render_docstring(self) -> str:
-        add, out = text_accumulator()
-        add(f"  {self.name}\n")
-        for line in self.docstring.split("\n"):
-            add(f"    {line}\n")
-        return out().rstrip()
+        lines = [f"  {self.name}"]
+        lines.extend(f"    {line}" for line in self.docstring.split("\n"))
+        return "\n".join(lines).rstrip()
 
 
 CConverterClassT = TypeVar("CConverterClassT", bound=type["CConverter"])
@@ -3107,9 +3128,7 @@ def add_legacy_c_converter(
         if not kwargs:
             added_f = f
         else:
-            # mypy's special-casing for functools.partial
-            # can't quite grapple with this code here
-            added_f = functools.partial(f, **kwargs)  # type: ignore[arg-type]
+            added_f = functools.partial(f, **kwargs)
         if format_unit:
             legacy_converters[format_unit] = added_f
         return f
@@ -3117,7 +3136,7 @@ def add_legacy_c_converter(
 
 class CConverterAutoRegister(type):
     def __init__(
-        cls, name: str, bases: tuple[type, ...], classdict: dict[str, Any]
+        cls, name: str, bases: tuple[type[object], ...], classdict: dict[str, Any]
     ) -> None:
         converter_cls = cast(type["CConverter"], cls)
         add_c_converter(converter_cls)
@@ -3150,7 +3169,7 @@ class CConverter(metaclass=CConverterAutoRegister):
 
     # If not None, default must be isinstance() of this type.
     # (You can also specify a tuple of types.)
-    default_type: bltns.type[Any] | tuple[bltns.type[Any], ...] | None = None
+    default_type: bltns.type[object] | tuple[bltns.type[object], ...] | None = None
 
     # "default" converted into a C value, as a string.
     # Or None if there is no default.
@@ -3501,6 +3520,8 @@ class CConverter(metaclass=CConverterAutoRegister):
         else:
             if expected_literal:
                 expected = f'"{expected}"'
+            if clinic is not None:
+                clinic.add_include('pycore_modsupport.h', '_PyArg_BadArgument()')
             return f'_PyArg_BadArgument("{{{{name}}}}", "{displayname}", {expected}, {{argname}});'
 
     def format_code(self, fmt: str, *,
@@ -3614,7 +3635,7 @@ legacy_converters: ConverterDict = {}
 ReturnConverterDict = dict[str, ReturnConverterType]
 return_converters: ReturnConverterDict = {}
 
-TypeSet = set[bltns.type[Any]]
+TypeSet = set[bltns.type[object]]
 
 
 class bool_converter(CConverter):
@@ -3628,7 +3649,7 @@ class bool_converter(CConverter):
             self.format_unit = 'i'
         elif accept != {object}:
             fail(f"bool_converter: illegal 'accept' argument {accept!r}")
-        if self.default is not unspecified:
+        if self.default is not unspecified and self.default is not unknown:
             self.default = bool(self.default)
             self.c_default = str(int(self.default))
 
@@ -4278,7 +4299,7 @@ class buffer: pass
 class rwbuffer: pass
 class robuffer: pass
 
-StrConverterKeyType = tuple[frozenset[type], bool, bool]
+StrConverterKeyType = tuple[frozenset[type[object]], bool, bool]
 
 def str_converter_key(
     types: TypeSet, encoding: bool | str | None, zeroes: bool
@@ -4587,13 +4608,10 @@ class Py_buffer_converter(CConverter):
         return "".join(["if (", name, ".obj) {\n   PyBuffer_Release(&", name, ");\n}\n"])
 
     def parse_arg(self, argname: str, displayname: str, *, limited_capi: bool) -> str | None:
+        # PyBUF_SIMPLE guarantees that the format units of the buffers are C-contiguous.
         if self.format_unit == 'y*':
             return self.format_code("""
                 if (PyObject_GetBuffer({argname}, &{paramname}, PyBUF_SIMPLE) != 0) {{{{
-                    goto exit;
-                }}}}
-                if (!PyBuffer_IsContiguous(&{paramname}, 'C')) {{{{
-                    {bad_argument}
                     goto exit;
                 }}}}
                 """,
@@ -4614,10 +4632,6 @@ class Py_buffer_converter(CConverter):
                     if (PyObject_GetBuffer({argname}, &{paramname}, PyBUF_SIMPLE) != 0) {{{{
                         goto exit;
                     }}}}
-                    if (!PyBuffer_IsContiguous(&{paramname}, 'C')) {{{{
-                        {bad_argument}
-                        goto exit;
-                    }}}}
                 }}}}
                 """,
                 argname=argname,
@@ -4627,10 +4641,6 @@ class Py_buffer_converter(CConverter):
             return self.format_code("""
                 if (PyObject_GetBuffer({argname}, &{paramname}, PyBUF_WRITABLE) < 0) {{{{
                     {bad_argument}
-                    goto exit;
-                }}}}
-                if (!PyBuffer_IsContiguous(&{paramname}, 'C')) {{{{
-                    {bad_argument2}
                     goto exit;
                 }}}}
                 """,
@@ -4644,7 +4654,7 @@ class Py_buffer_converter(CConverter):
 def correct_name_for_self(
         f: Function
 ) -> tuple[str, str]:
-    if f.kind in (CALLABLE, METHOD_INIT):
+    if f.kind in {CALLABLE, METHOD_INIT, GETTER, SETTER}:
         if f.cls:
             return "PyObject *", "self"
         return "PyObject *", "module"
@@ -4788,7 +4798,7 @@ class CReturnConverterAutoRegister(type):
     def __init__(
             cls: ReturnConverterType,
             name: str,
-            bases: tuple[type, ...],
+            bases: tuple[type[object], ...],
             classdict: dict[str, Any]
     ) -> None:
         add_c_return_converter(cls)
@@ -5101,8 +5111,11 @@ class DSLParser:
     indent: IndentStack
     kind: FunctionKind
     coexist: bool
+    forced_text_signature: str | None
     parameter_continuation: str
     preserve_output: bool
+    critical_section: bool
+    target_critical_section: list[str]
     from_version_re = re.compile(r'([*/]) +\[from +(.+)\]')
 
     def __init__(self, clinic: Clinic) -> None:
@@ -5134,16 +5147,11 @@ class DSLParser:
         self.indent = IndentStack()
         self.kind = CALLABLE
         self.coexist = False
-        self.forced_text_signature: str | None = None
+        self.forced_text_signature = None
         self.parameter_continuation = ''
         self.preserve_output = False
-
-    def directive_version(self, required: str) -> None:
-        global version
-        if version_comparitor(version, required) < 0:
-            fail("Insufficient Clinic version!\n"
-                 f"  Version: {version}\n"
-                 f"  Required: {required}")
+        self.critical_section = False
+        self.target_critical_section = []
 
     def directive_module(self, name: str) -> None:
         fields = name.split('.')[:-1]
@@ -5265,6 +5273,30 @@ class DSLParser:
             fail("Can't set @classmethod, function is not a normal callable")
         self.kind = CLASS_METHOD
 
+    def at_critical_section(self, *args: str) -> None:
+        if len(args) > 2:
+            fail("Up to 2 critical section variables are supported")
+        self.target_critical_section.extend(args)
+        self.critical_section = True
+
+    def at_getter(self) -> None:
+        match self.kind:
+            case FunctionKind.GETTER:
+                fail("Cannot apply @getter twice to the same function!")
+            case FunctionKind.SETTER:
+                fail("Cannot apply both @getter and @setter to the same function!")
+            case _:
+                self.kind = FunctionKind.GETTER
+
+    def at_setter(self) -> None:
+        match self.kind:
+            case FunctionKind.SETTER:
+                fail("Cannot apply @setter twice to the same function!")
+            case FunctionKind.GETTER:
+                fail("Cannot apply both @getter and @setter to the same function!")
+            case _:
+                self.kind = FunctionKind.SETTER
+
     def at_staticmethod(self) -> None:
         if self.kind is not CALLABLE:
             fail("Can't set @staticmethod, function is not a normal callable")
@@ -5374,14 +5406,20 @@ class DSLParser:
         _, cls = self.clinic._module_and_class(fields)
         if name in unsupported_special_methods:
             fail(f"{name!r} is a special method and cannot be converted to Argument Clinic!")
+
         if name == '__new__':
-            if (self.kind is not CLASS_METHOD) or (not cls):
+            if (self.kind is CLASS_METHOD) and cls:
+                self.kind = METHOD_NEW
+            else:
                 fail("'__new__' must be a class method!")
-            self.kind = METHOD_NEW
         elif name == '__init__':
-            if (self.kind is not CALLABLE) or (not cls):
-                fail("'__init__' must be a normal method, not a class or static method!")
-            self.kind = METHOD_INIT
+            if (self.kind is CALLABLE) and cls:
+                self.kind = METHOD_INIT
+            else:
+                fail(
+                    "'__init__' must be a normal method; "
+                    f"got '{self.kind}'!"
+                )
 
     def state_modulename_name(self, line: str) -> None:
         # looking for declaration, which establishes the leftmost column
@@ -5458,6 +5496,8 @@ class DSLParser:
 
         return_converter = None
         if returns:
+            if self.kind in {GETTER, SETTER}:
+                fail(f"@{self.kind.name.lower()} method cannot define a return type")
             ast_input = f"def x() -> {returns}: pass"
             try:
                 module_node = ast.parse(ast_input)
@@ -5479,6 +5519,10 @@ class DSLParser:
         function_name = fields.pop()
         module, cls = self.clinic._module_and_class(fields)
 
+        if self.kind in {GETTER, SETTER}:
+            if not cls:
+                fail("@getter and @setter must be methods")
+
         self.update_function_kind(full_name)
         if self.kind is METHOD_INIT and not return_converter:
             return_converter = init_return_converter()
@@ -5487,7 +5531,9 @@ class DSLParser:
             return_converter = CReturnConverter()
 
         self.function = Function(name=function_name, full_name=full_name, module=module, cls=cls, c_basename=c_basename,
-                                 return_converter=return_converter, kind=self.kind, coexist=self.coexist)
+                                 return_converter=return_converter, kind=self.kind, coexist=self.coexist,
+                                 critical_section=self.critical_section,
+                                 target_critical_section=self.target_critical_section)
         self.block.signatures.append(self.function)
 
         # insert a self converter automatically
@@ -5705,11 +5751,11 @@ class DSLParser:
         parameter_name = parameter.arg
         name, legacy, kwargs = self.parse_converter(parameter.annotation)
 
+        value: object
         if not default:
             if self.parameter_state is ParamState.OPTIONAL:
                 fail(f"Can't have a parameter without a default ({parameter_name!r}) "
                       "after a parameter with a default!")
-            value: Sentinels | Null
             if is_vararg:
                 value = NULL
                 kwargs.setdefault('c_default', "NULL")
@@ -5944,6 +5990,7 @@ class DSLParser:
         if version is None:
             if self.keyword_only:
                 fail(f"Function {function.name!r} uses '*' more than once.")
+            self.check_previous_star()
             self.check_remaining_star()
             self.keyword_only = True
         else:
@@ -6109,12 +6156,15 @@ class DSLParser:
     def format_docstring_signature(
         self, f: Function, parameters: list[Parameter]
     ) -> str:
-        text, add, output = _text_accumulator()
-        add(f.displayname)
+        lines = []
+        lines.append(f.displayname)
         if self.forced_text_signature:
-            add(self.forced_text_signature)
+            lines.append(self.forced_text_signature)
+        elif f.kind in {GETTER, SETTER}:
+            # @getter and @setter do not need signatures like a method or a function.
+            return ''
         else:
-            add('(')
+            lines.append('(')
 
             # populate "right_bracket_count" field for every parameter
             assert parameters, "We should always have a self parameter. " + repr(f)
@@ -6168,7 +6218,7 @@ class DSLParser:
 
             first_parameter = True
             last_p = parameters[-1]
-            line_length = len(''.join(text))
+            line_length = len(''.join(lines))
             indent = " " * line_length
             def add_parameter(text: str) -> None:
                 nonlocal line_length
@@ -6179,12 +6229,11 @@ class DSLParser:
                 else:
                     s = ' ' + text
                     if line_length + len(s) >= 72:
-                        add('\n')
-                        add(indent)
+                        lines.extend(["\n", indent])
                         line_length = len(indent)
                         s = text
                 line_length += len(s)
-                add(s)
+                lines.append(s)
 
             for p in parameters:
                 if not p.converter.show_in_signature:
@@ -6207,8 +6256,7 @@ class DSLParser:
                     added_star = True
                     add_parameter('*,')
 
-                p_add, p_output = text_accumulator()
-                p_add(fix_right_bracket_count(p.right_bracket_count))
+                p_lines = [fix_right_bracket_count(p.right_bracket_count)]
 
                 if isinstance(p.converter, self_converter):
                     # annotate first parameter as being a "self".
@@ -6226,30 +6274,31 @@ class DSLParser:
                     # have a docstring.)  if this is an __init__
                     # (or __new__), then this signature is for
                     # calling the class to construct a new instance.
-                    p_add('$')
+                    p_lines.append('$')
 
                 if p.is_vararg():
-                    p_add("*")
+                    p_lines.append("*")
 
                 name = p.converter.signature_name or p.name
-                p_add(name)
+                p_lines.append(name)
 
                 if not p.is_vararg() and p.converter.is_optional():
-                    p_add('=')
+                    p_lines.append('=')
                     value = p.converter.py_default
                     if not value:
                         value = repr(p.converter.default)
-                    p_add(value)
+                    p_lines.append(value)
 
                 if (p != last_p) or need_a_trailing_slash:
-                    p_add(',')
+                    p_lines.append(',')
 
-                add_parameter(p_output())
+                p_output = "".join(p_lines)
+                add_parameter(p_output)
 
-            add(fix_right_bracket_count(0))
+            lines.append(fix_right_bracket_count(0))
             if need_a_trailing_slash:
                 add_parameter('/')
-            add(')')
+            lines.append(')')
 
         # PEP 8 says:
         #
@@ -6261,13 +6310,13 @@ class DSLParser:
         # therefore this is commented out:
         #
         # if f.return_converter.py_default:
-        #     add(' -> ')
-        #     add(f.return_converter.py_default)
+        #     lines.append(' -> ')
+        #     lines.append(f.return_converter.py_default)
 
         if not f.docstring_only:
-            add("\n" + sig_end_marker + "\n")
+            lines.append("\n" + sig_end_marker + "\n")
 
-        signature_line = output()
+        signature_line = "".join(lines)
 
         # now fix up the places where the brackets look wrong
         return signature_line.replace(', ]', ',] ')
@@ -6275,18 +6324,13 @@ class DSLParser:
     @staticmethod
     def format_docstring_parameters(params: list[Parameter]) -> str:
         """Create substitution text for {parameters}"""
-        add, output = text_accumulator()
-        for p in params:
-            if p.docstring:
-                add(p.render_docstring())
-                add('\n')
-        return output()
+        return "".join(p.render_docstring() + "\n" for p in params if p.docstring)
 
     def format_docstring(self) -> str:
         assert self.function is not None
         f = self.function
-        if f.kind.new_or_init and not f.docstring:
-            # don't render a docstring at all, no signature, nothing.
+        # For the following special cases, it does not make sense to render a docstring.
+        if f.kind in {METHOD_INIT, METHOD_NEW, GETTER, SETTER} and not f.docstring:
             return f.docstring
 
         # Enforce the summary line!
@@ -6341,7 +6385,6 @@ class DSLParser:
         else:
             return
 
-        no_param_after_symbol = True
         for p in reversed(self.function.parameters.values()):
             if self.keyword_only:
                 if p.kind == inspect.Parameter.KEYWORD_ONLY:
@@ -6353,6 +6396,14 @@ class DSLParser:
 
         fail(f"Function {self.function.name!r} specifies {symbol!r} "
              f"without following parameters.", line_number=lineno)
+
+    def check_previous_star(self, lineno: int | None = None) -> None:
+        assert isinstance(self.function, Function)
+
+        for p in self.function.parameters.values():
+            if p.kind == inspect.Parameter.VAR_POSITIONAL:
+                fail(f"Function {self.function.name!r} uses '*' more than once.")
+
 
     def do_post_block_processing_cleanup(self, lineno: int) -> None:
         """
@@ -6391,7 +6442,7 @@ The purpose of the Argument Clinic is automating all the boilerplate involved
 with writing argument parsing code for builtins and providing introspection
 signatures ("docstrings") for CPython builtins.
 
-For more information see https://docs.python.org/3/howto/clinic.html""")
+For more information see https://devguide.python.org/development-tools/clinic/""")
     cmdline.add_argument("-f", "--force", action='store_true',
                          help="force output regeneration")
     cmdline.add_argument("-o", "--output", type=str,
