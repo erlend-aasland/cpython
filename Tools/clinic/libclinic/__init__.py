@@ -16,6 +16,11 @@ from .formatting import (
     wrap_declarations,
     wrapped_c_string_literal,
 )
+from .utils import (
+    create_regex,
+    compute_checksum,
+    write_file,
+)
 
 
 def get_logger(level: int = logging.WARNING) -> logging.Logger:
@@ -48,6 +53,11 @@ __all__ = [
 
     # Misc
     "get_logger",
+
+    # Utility functions
+    "create_regex",
+    "compute_checksum",
+    "write_file",
 ]
 
 
