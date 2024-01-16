@@ -23,6 +23,13 @@ processes, a :class:`~multiprocessing.managers.BaseManager` subclass,
 :class:`~multiprocessing.managers.SharedMemoryManager`, is also provided in the
 :mod:`multiprocessing.managers` module.
 
+
+Explanation
+-----------
+
+System V style shared memory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 In this module, shared memory refers to "System V style" shared memory blocks
 (though is not necessarily implemented explicitly as such) and does not refer
 to "distributed shared memory".  This style of shared memory permits distinct
@@ -35,6 +42,11 @@ significant performance benefits compared to sharing data via disk or socket
 or other communications requiring the serialization/deserialization and
 copying of data.
 
+
+.. _multiprocessing-shared-memory-reference:
+
+Reference
+---------
 
 .. class:: SharedMemory(name=None, create=False, size=0, *, track=True)
 
@@ -125,83 +137,6 @@ copying of data.
       Read-only access to size in bytes of the shared memory block.
 
 
-The following example demonstrates low-level use of :class:`SharedMemory`
-instances::
-
-   >>> from multiprocessing import shared_memory
-   >>> shm_a = shared_memory.SharedMemory(create=True, size=10)
-   >>> type(shm_a.buf)
-   <class 'memoryview'>
-   >>> buffer = shm_a.buf
-   >>> len(buffer)
-   10
-   >>> buffer[:4] = bytearray([22, 33, 44, 55])  # Modify multiple at once
-   >>> buffer[4] = 100                           # Modify single byte at a time
-   >>> # Attach to an existing shared memory block
-   >>> shm_b = shared_memory.SharedMemory(shm_a.name)
-   >>> import array
-   >>> array.array('b', shm_b.buf[:5])  # Copy the data into a new array.array
-   array('b', [22, 33, 44, 55, 100])
-   >>> shm_b.buf[:5] = b'howdy'  # Modify via shm_b using bytes
-   >>> bytes(shm_a.buf[:5])      # Access via shm_a
-   b'howdy'
-   >>> shm_b.close()   # Close each SharedMemory instance
-   >>> shm_a.close()
-   >>> shm_a.unlink()  # Call unlink only once to release the shared memory
-
-
-
-The following example demonstrates a practical use of the :class:`SharedMemory`
-class with `NumPy arrays <https://numpy.org/>`_, accessing the
-same :class:`!numpy.ndarray` from two distinct Python shells:
-
-.. doctest::
-   :options: +SKIP
-
-   >>> # In the first Python interactive shell
-   >>> import numpy as np
-   >>> a = np.array([1, 1, 2, 3, 5, 8])  # Start with an existing NumPy array
-   >>> from multiprocessing import shared_memory
-   >>> shm = shared_memory.SharedMemory(create=True, size=a.nbytes)
-   >>> # Now create a NumPy array backed by shared memory
-   >>> b = np.ndarray(a.shape, dtype=a.dtype, buffer=shm.buf)
-   >>> b[:] = a[:]  # Copy the original data into shared memory
-   >>> b
-   array([1, 1, 2, 3, 5, 8])
-   >>> type(b)
-   <class 'numpy.ndarray'>
-   >>> type(a)
-   <class 'numpy.ndarray'>
-   >>> shm.name  # We did not specify a name so one was chosen for us
-   'psm_21467_46075'
-
-   >>> # In either the same shell or a new Python shell on the same machine
-   >>> import numpy as np
-   >>> from multiprocessing import shared_memory
-   >>> # Attach to the existing shared memory block
-   >>> existing_shm = shared_memory.SharedMemory(name='psm_21467_46075')
-   >>> # Note that a.shape is (6,) and a.dtype is np.int64 in this example
-   >>> c = np.ndarray((6,), dtype=np.int64, buffer=existing_shm.buf)
-   >>> c
-   array([1, 1, 2, 3, 5, 8])
-   >>> c[-1] = 888
-   >>> c
-   array([  1,   1,   2,   3,   5, 888])
-
-   >>> # Back in the first Python interactive shell, b reflects this change
-   >>> b
-   array([  1,   1,   2,   3,   5, 888])
-
-   >>> # Clean up from within the second Python shell
-   >>> del c  # Unnecessary; merely emphasizing the array is no longer used
-   >>> existing_shm.close()
-
-   >>> # Clean up from within the first Python shell
-   >>> del b  # Unnecessary; merely emphasizing the array is no longer used
-   >>> shm.close()
-   >>> shm.unlink()  # Free and release the shared memory block at the very end
-
-
 .. class:: SharedMemoryManager([address[, authkey]])
    :module: multiprocessing.managers
 
@@ -240,49 +175,6 @@ same :class:`!numpy.ndarray` from two distinct Python shells:
       by the values from the input *sequence*.
 
 
-The following example demonstrates the basic mechanisms of a
-:class:`~multiprocessing.managers.SharedMemoryManager`:
-
-.. doctest::
-   :options: +SKIP
-
-   >>> from multiprocessing.managers import SharedMemoryManager
-   >>> smm = SharedMemoryManager()
-   >>> smm.start()  # Start the process that manages the shared memory blocks
-   >>> sl = smm.ShareableList(range(4))
-   >>> sl
-   ShareableList([0, 1, 2, 3], name='psm_6572_7512')
-   >>> raw_shm = smm.SharedMemory(size=128)
-   >>> another_sl = smm.ShareableList('alpha')
-   >>> another_sl
-   ShareableList(['a', 'l', 'p', 'h', 'a'], name='psm_6572_12221')
-   >>> smm.shutdown()  # Calls unlink() on sl, raw_shm, and another_sl
-
-The following example depicts a potentially more convenient pattern for using
-:class:`~multiprocessing.managers.SharedMemoryManager` objects via the
-:keyword:`with` statement to ensure that all shared memory blocks are released
-after they are no longer needed:
-
-.. doctest::
-   :options: +SKIP
-
-   >>> with SharedMemoryManager() as smm:
-   ...     sl = smm.ShareableList(range(2000))
-   ...     # Divide the work among two processes, storing partial results in sl
-   ...     p1 = Process(target=do_work, args=(sl, 0, 1000))
-   ...     p2 = Process(target=do_work, args=(sl, 1000, 2000))
-   ...     p1.start()
-   ...     p2.start()  # A multiprocessing.Pool might be more efficient
-   ...     p1.join()
-   ...     p2.join()   # Wait for all work to complete in both processes
-   ...     total_result = sum(sl)  # Consolidate the partial results now in sl
-
-When using a :class:`~multiprocessing.managers.SharedMemoryManager`
-in a :keyword:`with` statement, the shared memory blocks created using that
-manager are all released when the :keyword:`!with` statement's code block
-finishes execution.
-
-
 .. class:: ShareableList(sequence=None, *, name=None)
 
    Provide a mutable list-like object where all values stored within are
@@ -311,34 +203,6 @@ finishes execution.
    existing :class:`!ShareableList`, specify its shared memory block's unique
    name while leaving *sequence* set to ``None``.
 
-   .. note::
-
-      A known issue exists for :class:`bytes` and :class:`str` values.
-      If they end with ``\x00`` nul bytes or characters, those may be
-      *silently stripped* when fetching them by index from the
-      :class:`!ShareableList`. This ``.rstrip(b'\x00')`` behavior is
-      considered a bug and may go away in the future. See :gh:`106939`.
-
-   For applications where rstripping of trailing nulls is a problem,
-   work around it by always unconditionally appending an extra non-0
-   byte to the end of such values when storing and unconditionally
-   removing it when fetching:
-
-   .. doctest::
-
-       >>> from multiprocessing import shared_memory
-       >>> nul_bug_demo = shared_memory.ShareableList(['?\x00', b'\x03\x02\x01\x00\x00\x00'])
-       >>> nul_bug_demo[0]
-       '?'
-       >>> nul_bug_demo[1]
-       b'\x03\x02\x01'
-       >>> nul_bug_demo.shm.unlink()
-       >>> padded = shared_memory.ShareableList(['?\x00\x07', b'\x03\x02\x01\x00\x00\x00\x07'])
-       >>> padded[0][:-1]
-       '?\x00'
-       >>> padded[1][:-1]
-       b'\x03\x02\x01\x00\x00\x00'
-       >>> padded.shm.unlink()
 
    .. method:: count(value)
 
@@ -434,3 +298,177 @@ object with the same name (if the object is still alive):
 
    >>> sl.shm.close()
    >>> sl.shm.unlink()
+
+
+.. _multiprocessing-shared-memory-tutorials:
+
+Tutorials
+---------
+
+
+Basic usage of :class:`!SharedMemory`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following example demonstrates low-level use of :class:`SharedMemory`
+instances::
+
+   >>> from multiprocessing import shared_memory
+   >>> shm_a = shared_memory.SharedMemory(create=True, size=10)
+   >>> type(shm_a.buf)
+   <class 'memoryview'>
+   >>> buffer = shm_a.buf
+   >>> len(buffer)
+   10
+   >>> buffer[:4] = bytearray([22, 33, 44, 55])  # Modify multiple at once
+   >>> buffer[4] = 100                           # Modify single byte at a time
+   >>> # Attach to an existing shared memory block
+   >>> shm_b = shared_memory.SharedMemory(shm_a.name)
+   >>> import array
+   >>> array.array('b', shm_b.buf[:5])  # Copy the data into a new array.array
+   array('b', [22, 33, 44, 55, 100])
+   >>> shm_b.buf[:5] = b'howdy'  # Modify via shm_b using bytes
+   >>> bytes(shm_a.buf[:5])      # Access via shm_a
+   b'howdy'
+   >>> shm_b.close()   # Close each SharedMemory instance
+   >>> shm_a.close()
+   >>> shm_a.unlink()  # Call unlink only once to release the shared memory
+
+
+Basic usage of :class:`!SharedMemoryManager`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following example demonstrates the basic mechanisms of a
+:class:`~multiprocessing.managers.SharedMemoryManager`:
+
+.. doctest::
+   :options: +SKIP
+
+   >>> from multiprocessing.managers import SharedMemoryManager
+   >>> smm = SharedMemoryManager()
+   >>> smm.start()  # Start the process that manages the shared memory blocks
+   >>> sl = smm.ShareableList(range(4))
+   >>> sl
+   ShareableList([0, 1, 2, 3], name='psm_6572_7512')
+   >>> raw_shm = smm.SharedMemory(size=128)
+   >>> another_sl = smm.ShareableList('alpha')
+   >>> another_sl
+   ShareableList(['a', 'l', 'p', 'h', 'a'], name='psm_6572_12221')
+   >>> smm.shutdown()  # Calls unlink() on sl, raw_shm, and another_sl
+
+
+.. _multiprocessing-shared-memory-howtos:
+
+How-to guides
+-------------
+
+How to share data between two distinct Python processes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following example demonstrates a practical use of the :class:`SharedMemory`
+class with `NumPy arrays <https://numpy.org/>`_, accessing the
+same :class:`!numpy.ndarray` from two distinct Python shells:
+
+.. doctest::
+   :options: +SKIP
+
+   >>> # In the first Python interactive shell
+   >>> import numpy as np
+   >>> a = np.array([1, 1, 2, 3, 5, 8])  # Start with an existing NumPy array
+   >>> from multiprocessing import shared_memory
+   >>> shm = shared_memory.SharedMemory(create=True, size=a.nbytes)
+   >>> # Now create a NumPy array backed by shared memory
+   >>> b = np.ndarray(a.shape, dtype=a.dtype, buffer=shm.buf)
+   >>> b[:] = a[:]  # Copy the original data into shared memory
+   >>> b
+   array([1, 1, 2, 3, 5, 8])
+   >>> type(b)
+   <class 'numpy.ndarray'>
+   >>> type(a)
+   <class 'numpy.ndarray'>
+   >>> shm.name  # We did not specify a name so one was chosen for us
+   'psm_21467_46075'
+
+   >>> # In either the same shell or a new Python shell on the same machine
+   >>> import numpy as np
+   >>> from multiprocessing import shared_memory
+   >>> # Attach to the existing shared memory block
+   >>> existing_shm = shared_memory.SharedMemory(name='psm_21467_46075')
+   >>> # Note that a.shape is (6,) and a.dtype is np.int64 in this example
+   >>> c = np.ndarray((6,), dtype=np.int64, buffer=existing_shm.buf)
+   >>> c
+   array([1, 1, 2, 3, 5, 8])
+   >>> c[-1] = 888
+   >>> c
+   array([  1,   1,   2,   3,   5, 888])
+
+   >>> # Back in the first Python interactive shell, b reflects this change
+   >>> b
+   array([  1,   1,   2,   3,   5, 888])
+
+   >>> # Clean up from within the second Python shell
+   >>> del c  # Unnecessary; merely emphasizing the array is no longer used
+   >>> existing_shm.close()
+
+   >>> # Clean up from within the first Python shell
+   >>> del b  # Unnecessary; merely emphasizing the array is no longer used
+   >>> shm.close()
+   >>> shm.unlink()  # Free and release the shared memory block at the very end
+
+
+How to use the :class:`!SharedMemoryManager` context manager
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following example depicts a potentially more convenient pattern for using
+:class:`~multiprocessing.managers.SharedMemoryManager` objects via the
+:keyword:`with` statement to ensure that all shared memory blocks are released
+after they are no longer needed:
+
+.. doctest::
+   :options: +SKIP
+
+   >>> with SharedMemoryManager() as smm:
+   ...     sl = smm.ShareableList(range(2000))
+   ...     # Divide the work among two processes, storing partial results in sl
+   ...     p1 = Process(target=do_work, args=(sl, 0, 1000))
+   ...     p2 = Process(target=do_work, args=(sl, 1000, 2000))
+   ...     p1.start()
+   ...     p2.start()  # A multiprocessing.Pool might be more efficient
+   ...     p1.join()
+   ...     p2.join()   # Wait for all work to complete in both processes
+   ...     total_result = sum(sl)  # Consolidate the partial results now in sl
+
+When using a :class:`~multiprocessing.managers.SharedMemoryManager`
+in a :keyword:`with` statement, the shared memory blocks created using that
+manager are all released when the :keyword:`!with` statement's code block
+finishes execution.
+
+
+How to work around the :class:`!ShareableList` :meth:`!rstrip` problem
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A known issue exists for :class:`bytes` and :class:`str` values.
+If they end with ``\x00`` nul bytes or characters, those may be
+*silently stripped* when fetching them by index from the
+:class:`!ShareableList`. This ``.rstrip(b'\x00')`` behavior is
+considered a bug and may go away in the future. See :gh:`106939`.
+
+For applications where rstripping of trailing nulls is a problem,
+work around it by always unconditionally appending an extra non-0
+byte to the end of such values when storing and unconditionally
+removing it when fetching:
+
+.. doctest::
+
+   >>> from multiprocessing import shared_memory
+   >>> nul_bug_demo = shared_memory.ShareableList(['?\x00', b'\x03\x02\x01\x00\x00\x00'])
+   >>> nul_bug_demo[0]
+   '?'
+   >>> nul_bug_demo[1]
+   b'\x03\x02\x01'
+   >>> nul_bug_demo.shm.unlink()
+   >>> padded = shared_memory.ShareableList(['?\x00\x07', b'\x03\x02\x01\x00\x00\x00\x07'])
+   >>> padded[0][:-1]
+   '?\x00'
+   >>> padded[1][:-1]
+   b'\x03\x02\x01\x00\x00\x00'
+   >>> padded.shm.unlink()
