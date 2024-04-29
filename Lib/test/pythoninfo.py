@@ -449,6 +449,13 @@ def collect_tkinter(info_add):
         patchlevel = tcl.call('info', 'patchlevel')
         info_add('tkinter.info_patchlevel', patchlevel)
 
+    if sys.platform == "darwin":
+        import subprocess
+        rc = subprocess.run(["launchctl", "managername"],
+                            capture_output=True, check=True)
+        managername = rc.stdout.decode("utf-8").strip()
+        info_add("managername", managername)
+
 
 def collect_time(info_add):
     import time
