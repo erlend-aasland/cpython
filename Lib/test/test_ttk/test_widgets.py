@@ -374,7 +374,7 @@ class EntryTest(AbstractWidgetTest, unittest.TestCase):
         self.entry.update()
 
         # bpo-27313: macOS Cocoa widget differs from X, allow either
-        self.assertEqual(self.entry.identify(5, 5), self.IDENTIFY_AS)
+        self.assertEqual(self.entry.identify(1, 1), self.IDENTIFY_AS)
         self.assertEqual(self.entry.identify(-1, -1), "")
 
         self.assertRaises(tkinter.TclError, self.entry.identify, None, 5)
