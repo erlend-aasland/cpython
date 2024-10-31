@@ -97,6 +97,8 @@ _sqlite3.complete_statement as pysqlite_complete_statement
     statement: str
 
 Checks if a string contains a complete SQL statement.
+
+TEST CHANGE
 [clinic start generated code]*/
 
 static PyObject *
