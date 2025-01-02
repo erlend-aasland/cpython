@@ -438,9 +438,9 @@ seterror(Py_ssize_t iarg, const char *msg, int *levels, const char *fname,
 
 
 static const char *
-convertitems(PyObject *arg, const char **p_format, va_list *p_va, int flags,
-             int *levels, char *msgbuf, size_t bufsize,
-             freelist_t *freelist)
+converttupleitems(PyObject *arg, const char **p_format, va_list *p_va,
+                  int flags, int *levels, char *msgbuf, size_t bufsize,
+                  freelist_t *freelist)
 {
     const char *format = *p_format;
     int n = PyTuple_GET_SIZE(arg);
@@ -532,7 +532,10 @@ converttuple(PyObject *arg, const char **p_format, va_list *p_va, int flags,
         }
     }
 
-    if (!PySequence_Check(arg) ||
+    if (PyTuple_Check(arg)) {
+        // Pass.
+    }
+    else if (!PySequence_Check(arg) ||
         PyUnicode_Check(arg) || PyBytes_Check(arg) || PyByteArray_Check(arg))
     {
         levels[0] = 0;
@@ -542,7 +545,7 @@ converttuple(PyObject *arg, const char **p_format, va_list *p_va, int flags,
                   arg == Py_None ? "None" : Py_TYPE(arg)->tp_name);
         return msgbuf;
     }
-    else if (!PyTuple_Check(arg)) {
+    else {
         if (mustbetuple) {
             if (PyErr_WarnFormat(PyExc_DeprecationWarning, 0,
                     "argument must be %d-item tuple, not %T", n, arg))
@@ -563,8 +566,10 @@ converttuple(PyObject *arg, const char **p_format, va_list *p_va, int flags,
             return msgbuf;
         }
 
-        return convertitems(tuple, p_format, p_va, flags, levels,
-                            msgbuf, bufsize, freelist);
+        const char *ret = converttupleitems(tuple, p_format, p_va, flags,
+                                            levels, msgbuf, bufsize, freelist);
+        Py_DECREF(tuple);
+        return ret;
     }
 
     len = PyTuple_GET_SIZE(arg);
@@ -576,8 +581,8 @@ converttuple(PyObject *arg, const char **p_format, va_list *p_va, int flags,
         return msgbuf;
     }
 
-    return convertitems(arg, p_format, p_va, flags, levels,
-                        msgbuf, bufsize, freelist);
+    return converttupleitems(arg, p_format, p_va, flags, levels,
+                             msgbuf, bufsize, freelist);
 }
 
 
