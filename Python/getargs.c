@@ -437,6 +437,27 @@ seterror(Py_ssize_t iarg, const char *msg, int *levels, const char *fname,
 }
 
 
+static const char *
+convertitems(PyObject *arg, const char **p_format, va_list *p_va, int flags,
+             int *levels, char *msgbuf, size_t bufsize,
+             freelist_t *freelist)
+{
+    const char *format = *p_format;
+    int n = PyTuple_GET_SIZE(arg);
+    for (int i = 0; i < n; i++) {
+        PyObject *item = PyTuple_GET_ITEM(arg, i);
+        const char *msg = convertitem(item, &format, p_va, flags, levels+1,
+                                      msgbuf, bufsize, freelist);
+        if (msg != NULL) {
+            levels[0] = i+1;
+            return msg;
+        }
+    }
+    *p_format = format;
+    return NULL;
+}
+
+
 /* Convert a tuple argument.
    On entry, *p_format points to the character _after_ the opening '('.
    On successful exit, *p_format points to the closing ')'.
@@ -463,7 +484,6 @@ converttuple(PyObject *arg, const char **p_format, va_list *p_va, int flags,
     int level = 0;
     int n = 0;
     const char *format = *p_format;
-    int i;
     Py_ssize_t len;
     int mustbetuple = PyTuple_Check(arg);
 
@@ -512,10 +532,7 @@ converttuple(PyObject *arg, const char **p_format, va_list *p_va, int flags,
         }
     }
 
-    if (PyTuple_Check(arg)) {
-        Py_INCREF(arg);
-    }
-    else if (!PySequence_Check(arg) ||
+    if (!PySequence_Check(arg) ||
         PyUnicode_Check(arg) || PyBytes_Check(arg) || PyByteArray_Check(arg))
     {
         levels[0] = 0;
@@ -525,7 +542,7 @@ converttuple(PyObject *arg, const char **p_format, va_list *p_va, int flags,
                   arg == Py_None ? "None" : Py_TYPE(arg)->tp_name);
         return msgbuf;
     }
-    else {
+    else if (!PyTuple_Check(arg)) {
         if (mustbetuple) {
             if (PyErr_WarnFormat(PyExc_DeprecationWarning, 0,
                     "argument must be %d-item tuple, not %T", n, arg))
@@ -541,10 +558,13 @@ converttuple(PyObject *arg, const char **p_format, va_list *p_va, int flags,
                           mustbetuple ? "tuple" : "sequence", n, len);
             return msgbuf;
         }
-        arg = PySequence_Tuple(arg);
-        if (arg == NULL) {
+        PyObject *tuple = PySequence_Tuple(arg);
+        if (tuple == NULL) {
             return msgbuf;
         }
+
+        return convertitems(tuple, p_format, p_va, flags, levels,
+                            msgbuf, bufsize, freelist);
     }
 
     len = PyTuple_GET_SIZE(arg);
@@ -553,26 +573,11 @@ converttuple(PyObject *arg, const char **p_format, va_list *p_va, int flags,
         PyOS_snprintf(msgbuf, bufsize,
                       "must be tuple of length %d, not %zd",
                       n, len);
-        Py_DECREF(arg);
         return msgbuf;
     }
 
-    format = *p_format;
-    for (i = 0; i < n; i++) {
-        const char *msg;
-        PyObject *item = PyTuple_GET_ITEM(arg, i);
-        msg = convertitem(item, &format, p_va, flags, levels+1,
-                          msgbuf, bufsize, freelist);
-        if (msg != NULL) {
-            levels[0] = i+1;
-            Py_DECREF(arg);
-            return msg;
-        }
-    }
-
-    *p_format = format;
-    Py_DECREF(arg);
-    return NULL;
+    return convertitems(arg, p_format, p_va, flags, levels,
+                        msgbuf, bufsize, freelist);
 }
 
 
